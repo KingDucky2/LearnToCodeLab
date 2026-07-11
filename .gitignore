@@ -1,0 +1,10 @@
+client_secret_*.json
+.env
+.env.local
+.env.*.local
+node_modules
+.next
+out
+dist
+coverage
+.vercel

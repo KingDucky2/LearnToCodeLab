@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnToCode Lab | Advanced Practice System</title>
+  <meta name="description" content="LearnToCode Lab is an adaptive coding practice system with lessons, diagnostics, quiz review, weak-topic tracking, and progress tools by Luke Giordano." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a href="#home" class="brand" aria-label="LearnToCode Lab home">
+      <img src="learntocodelab-logo.png" alt="" />
+      <span>LearnToCode Lab</span>
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-label="Open menu">Menu</button>
+    <nav id="navLinks">
+      <a href="#home">Dashboard</a>
+      <a href="#quiz">Practice</a>
+      <a href="#learn">Lessons</a>
+      <a href="#settings">Settings</a>
+    </nav>
+  </header>
+
+  <main id="home" class="app-shell">
+    <aside class="side-panel">
+      <img class="hero-logo" src="learntocodelab-logo.png" alt="LearnToCode Lab official logo" />
+      <p class="eyebrow">Adaptive coding lab</p>
+      <h1>Train like a real developer.</h1>
+      <p>Debug questions, review weak topics, and build a personal coding path across HTML, CSS, JavaScript, Python, C++, Swift, and Lua.</p>
+      <div class="stack-list">
+        <span>HTML</span><span>CSS</span><span>JavaScript</span><span>Python</span><span>C++</span><span>Swift</span><span>Lua</span>
+      </div>
+    </aside>
+
+    <section class="mission-panel" aria-labelledby="missionTitle">
+      <div class="panel-top">
+        <div>
+          <p class="eyebrow">Mission Control</p>
+          <h2 id="missionTitle">Today’s training system</h2>
+        </div>
+        <a class="btn primary" href="#quiz">Launch Practice</a>
+      </div>
+
+      <div class="command-grid">
+        <article class="command-card">
+          <span class="command-index">01</span>
+          <h3>Diagnose</h3>
+          <p>Run a mixed quiz to expose weak topics across syntax, layout, logic, and language fundamentals.</p>
+        </article>
+        <article class="command-card">
+          <span class="command-index">02</span>
+          <h3>Repair</h3>
+          <p>Use explanations and missed-question mode to rebuild the concepts that caused mistakes.</p>
+        </article>
+        <article class="command-card">
+          <span class="command-index">03</span>
+          <h3>Level up</h3>
+          <p>Switch to hard mode and advanced language topics once your streak starts climbing.</p>
+        </article>
+      </div>
+
+      <div class="lab-console" aria-label="Example training state">
+        <div class="console-top">
+          <span></span><span></span><span></span>
+          <strong>adaptive-session.json</strong>
+        </div>
+        <pre><code>{
+  "focus": "debugging",
+  "method": "miss -> review -> retry",
+  "engine": "adaptive quiz",
+  "next": "weakest topics first"
+}</code></pre>
+      </div>
+    </section>
+
+    <aside class="progress-panel" aria-labelledby="progressTitle">
+      <p class="eyebrow">Live profile</p>
+      <h2 id="progressTitle">Progress signal</h2>
+      <div class="stats-grid" id="statsGrid">
+        <div><span id="attemptsStat">0</span><small>Attempts</small></div>
+        <div><span id="bestStat">0%</span><small>Best</small></div>
+        <div><span id="averageStat">0%</span><small>Average</small></div>
+        <div><span id="streakStat">0</span><small>Streak</small></div>
+      </div>
+      <div class="weak-panel" id="weakPanel">
+        <strong>Personalized focus</strong>
+        <p id="weakTopicsText">Take a quiz and this will show your weakest topics.</p>
+      </div>
+      <div class="recommend-panel">
+        <p class="eyebrow">Recommended next</p>
+        <h3 id="recommendedLessonTitle">Take a quiz to unlock your recommendation.</h3>
+        <p id="recommendedLessonText">Your missed topics will appear here so practice gets more personal over time.</p>
+        <button class="btn quiet" id="openRecommendedLesson">Open Recommended Lesson</button>
+      </div>
+    </aside>
+
+    <section id="quiz" class="practice-panel">
+      <div class="panel-top">
+        <div>
+          <p class="eyebrow">Interactive Practice</p>
+          <h2>Adaptive drill engine</h2>
+        </div>
+        <button class="btn primary" id="startQuiz">Start Quiz</button>
+      </div>
+
+      <div class="quiz-controls">
+        <div>
+          <label for="languageSelect">Language</label>
+          <select id="languageSelect">
+            <option value="mixed">Mixed</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+            <option value="cpp">C++</option>
+            <option value="swift">Swift</option>
+            <option value="lua">Lua</option>
+          </select>
+        </div>
+        <div>
+          <label for="difficultySelect">Difficulty</label>
+          <select id="difficultySelect">
+            <option value="mix">Mix of all</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div>
+          <label for="lengthSelect">Length</label>
+          <select id="lengthSelect">
+            <option value="adaptive">Adaptive length</option>
+            <option value="10">10 questions</option>
+            <option value="15">15 questions</option>
+            <option value="25">25 questions</option>
+            <option value="all">All available</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="quizBox" class="quiz-box hidden">
+        <div class="quiz-top"><span id="questionCount"></span><span id="scoreCount"></span></div>
+        <h3 id="questionText"></h3>
+        <div id="answers" class="answers"></div>
+        <p id="feedback"></p>
+        <div class="quiz-actions">
+          <button id="nextBtn" class="btn quiet hidden">Next</button>
+          <button id="quitBtn" class="btn danger hidden">End Quiz</button>
+        </div>
+      </div>
+
+      <div id="resultsBox" class="results-box hidden">
+        <h3 id="finalScore"></h3>
+        <p id="finalMessage"></p>
+        <div id="reviewList" class="review-list"></div>
+        <div class="result-actions">
+          <button class="btn primary" id="practiceBtn">Practice Missed Questions</button>
+          <button class="btn quiet" id="restartBtn">Restart Full Quiz</button>
+          <button class="btn danger" id="resetStatsBtn">Reset Stats</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="learn" class="lessons-panel">
+      <div class="panel-top">
+        <div>
+          <p class="eyebrow">Lesson Matrix</p>
+          <h2>Coding lessons</h2>
+        </div>
+      </div>
+      <div class="course-grid">
+        <article class="course-card"><span>Foundation</span><h3>HTML Structure</h3><p>Semantic sections, forms, metadata, links, images, and accessibility.</p><button data-lesson="html-structure">Open Lesson</button></article>
+        <article class="course-card"><span>Interface</span><h3>CSS Layout</h3><p>Selectors, specificity, box model, flexbox, grid, responsive sizing, and cascade.</p><button data-lesson="css-layout">Open Lesson</button></article>
+        <article class="course-card"><span>Runtime</span><h3>JavaScript DOM</h3><p>Variables, selectors, events, arrays, async behavior, closures, and rendering.</p><button data-lesson="javascript-dom">Open Lesson</button></article>
+        <article class="course-card"><span>Logic</span><h3>Python Foundations</h3><p>Variables, functions, loops, dictionaries, exceptions, scope, and generators.</p><button data-lesson="python-foundations">Open Lesson</button></article>
+        <article class="course-card"><span>Systems</span><h3>C++ Core</h3><p>Statements, output, references, vectors, memory lifetime, const, and templates.</p><button data-lesson="cpp-core">Open Lesson</button></article>
+        <article class="course-card"><span>Concepts</span><h3>Swift & Lua Concepts</h3><p>Optionals, protocols, structs, Lua tables, metatables, closures, and coroutines.</p><button data-lesson="swift-lua">Open Lesson</button></article>
+      </div>
+      <div id="lessonBox" class="lesson-box hidden">
+        <button class="close-btn" onclick="closeLesson()" aria-label="Close lesson">Close</button>
+        <h3 id="lessonTitle"></h3>
+        <p id="lessonText"></p>
+        <ul id="lessonSteps" class="lesson-steps"></ul>
+      </div>
+    </section>
+
+    <section id="settings" class="settings-panel">
+      <div class="panel-top">
+        <div>
+          <p class="eyebrow">System Settings</p>
+          <h2>Study setup</h2>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <article class="setting-card">
+          <h3>Appearance</h3>
+          <p>Choose the theme that feels better to study with.</p>
+          <div class="theme-toggle" role="group" aria-label="Theme">
+            <button id="lightModeBtn" type="button">Light</button>
+            <button id="darkModeBtn" type="button">Dark</button>
+          </div>
+        </article>
+        <article class="setting-card">
+          <h3>Google Sign-In</h3>
+          <p id="profileMode">Sign in to personalize this browser.</p>
+          <button class="btn quiet google-login" id="googleLoginBtn">Sign in with Google</button>
+          <div id="googleButton" class="google-button-wrap hidden"></div>
+          <p id="authMessage" class="auth-message">Ready to sign in.</p>
+        </article>
+        <article class="setting-card">
+          <h3>Progress</h3>
+          <p>Clear quiz stats and weak-topic tracking when you want a fresh start.</p>
+          <button class="btn danger" id="settingsResetStatsBtn">Reset Progress</button>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made by Luke Giordano</p>
+    <p>© 2026 LearnToCode Lab. All Rights Reserved.</p>
+  </footer>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="script.js"></script>
+</body>
+</html>
