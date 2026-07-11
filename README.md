@@ -29,7 +29,7 @@ http://localhost:3000/
 
 Required environment variables:
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
 Maintenance page:
 - `maintenance.html` is standalone and has the official logo embedded.

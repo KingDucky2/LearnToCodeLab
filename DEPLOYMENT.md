@@ -9,8 +9,7 @@ LearnToCode Lab is now designed as a Next.js application deployed on Vercel from
 3. Set the framework preset to Next.js.
 4. Add preview and production environment variables:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` only for server-only seed/admin scripts when needed
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 5. Configure automatic deployments from GitHub.
 6. Add `LearnToCodeLab.com` as the production custom domain in Vercel.
 
