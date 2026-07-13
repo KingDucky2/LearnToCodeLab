@@ -10,6 +10,8 @@ LearnToCode Lab is now designed as a Next.js application deployed on Vercel from
 4. Add preview and production environment variables:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   - `NEXT_PUBLIC_SITE_URL`
+   - `MAINTENANCE_MODE=false`
 5. Configure automatic deployments from GitHub.
 6. Add `LearnToCodeLab.com` as the production custom domain in Vercel.
 
@@ -26,4 +28,8 @@ LearnToCode Lab is now designed as a Next.js application deployed on Vercel from
 
 ## Maintenance fallback
 
-`maintenance.html` is still a standalone emergency file with the official logo embedded. If Vercel or the app needs to be temporarily replaced, upload the contents of `maintenance-index.html` as `index.html` to a static host.
+Normal maintenance is controlled through `/admin/maintenance` and stored in Supabase. Run `supabase/migrations/202607130001_maintenance_system.sql`, then assign an `admin` or `owner` role before using the control panel.
+
+For an application-level emergency, set `MAINTENANCE_MODE=true` in Vercel and redeploy. Optional server-only variables are `MAINTENANCE_TITLE`, `MAINTENANCE_MESSAGE`, and `MAINTENANCE_ESTIMATED_RETURN`.
+
+`maintenance.html` remains a standalone emergency artifact. If the Vercel app must be replaced temporarily, upload that file as `index.html` to a static host. It contains no secret keys and loads the official logo from the public GitHub repository.

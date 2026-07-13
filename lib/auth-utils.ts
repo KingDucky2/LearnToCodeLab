@@ -1,6 +1,6 @@
 export const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", "/auth/sign-in", "/auth/create-account"] as const;
 
-export const protectedRoutes = ["/dashboard", "/profile", "/settings", "/onboarding", "/my-learning", "/projects"] as const;
+export const protectedRoutes = ["/dashboard", "/profile", "/settings", "/onboarding", "/admin", "/my-learning", "/projects"] as const;
 
 const fallbackPath = "/dashboard";
 

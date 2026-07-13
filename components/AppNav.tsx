@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminRole } from "@/lib/maintenance";
 
 const publicNavItems = [
   { href: "/learn", label: "Learn" },
@@ -19,7 +20,7 @@ export async function AppNav() {
     data: { user }
   } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   const db = supabase as any;
-  const { data: profile } = user && supabase ? await db.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle() : { data: null };
+  const { data: profile } = user && supabase ? await db.from("profiles").select("display_name, avatar_url, role").eq("id", user.id).maybeSingle() : { data: null };
   const avatar = profile?.avatar_url;
   const label = profile?.display_name || user?.email || "Account";
 
@@ -36,7 +37,7 @@ export async function AppNav() {
           </Link>
         ))}
         {user
-          ? privateNavItems.map((item) => (
+          ? [...privateNavItems, ...(isAdminRole(profile?.role) ? [{ href: "/admin", label: "Admin" }] : [])].map((item) => (
               <Link key={item.href} href={item.href} className="rounded-xl px-3 py-2 text-sm font-extrabold text-slate-600 hover:bg-slate-100 hover:text-lab-navy">
                 {item.label}
               </Link>

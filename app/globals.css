@@ -96,3 +96,40 @@ textarea {
   background: #07101d;
   color: #f7fbff;
 }
+
+body:has(main[data-maintenance-page]) > header,
+body:has(main[data-maintenance-page]) > footer {
+  display: none;
+}
+
+.maintenance-page {
+  background: linear-gradient(145deg, #eef8ff 0%, #ffffff 48%, #eafcf6 100%);
+}
+
+.maintenance-page > div,
+.maintenance-online {
+  border-radius: 8px;
+}
+
+.maintenance-hero::before {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+  content: "";
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+.maintenance-pulse { animation: maintenance-pulse 1.8s ease-in-out infinite; }
+.maintenance-spin { animation: maintenance-spin 1.8s linear infinite; }
+
+@keyframes maintenance-pulse { 50% { opacity: .35; transform: scale(.8); } }
+@keyframes maintenance-spin { to { transform: rotate(360deg); } }
+
+:root[data-theme="dark"] .maintenance-page { background: #07101d; }
+:root[data-theme="dark"] .maintenance-content { background: #0f1d31; }
+
+@media (prefers-reduced-motion: reduce) {
+  .maintenance-pulse,
+  .maintenance-spin { animation: none; }
+}
