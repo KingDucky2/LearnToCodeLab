@@ -45,6 +45,34 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["privacy_preferences"]["Insert"]>;
         Relationships: [];
       };
+      learning_preferences: {
+        Row: {
+          user_id: string;
+          explanation_style: string;
+          lesson_pace: string;
+          practice_frequency: string;
+          hint_behavior: string;
+          theme: string;
+          reduced_motion: boolean;
+          lesson_difficulty: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          explanation_style?: string;
+          lesson_pace?: string;
+          practice_frequency?: string;
+          hint_behavior?: string;
+          theme?: string;
+          reduced_motion?: boolean;
+          lesson_difficulty?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["learning_preferences"]["Insert"]>;
+        Relationships: [];
+      };
       learning_paths: {
         Row: { id: string; slug: string; title: string; description: string; color: string; sort_order: number; created_at: string };
         Insert: { id?: string; slug: string; title: string; description: string; color: string; sort_order: number; created_at?: string };

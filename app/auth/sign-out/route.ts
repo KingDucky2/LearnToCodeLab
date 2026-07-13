@@ -8,10 +8,6 @@ async function signOut(request: Request) {
   return NextResponse.redirect(new URL("/", requestUrl.origin), { status: 303 });
 }
 
-export async function GET(request: Request) {
-  return signOut(request);
-}
-
 export async function POST(request: Request) {
   return signOut(request);
 }

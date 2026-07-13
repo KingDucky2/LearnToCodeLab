@@ -6,10 +6,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
-  if (supabase) {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) redirect("/login?next=/dashboard");
-  }
+  if (!supabase) redirect("/login?next=/dashboard");
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/login?next=/dashboard");
 
   const focus = learningPaths.slice(0, 3);
   return (

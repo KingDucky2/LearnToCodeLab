@@ -4,6 +4,13 @@ import { createMiddlewareClient, hasSupabaseEnv } from "@/lib/supabase/middlewar
 
 export async function middleware(request: NextRequest) {
   if (!hasSupabaseEnv()) {
+    if (isProtectedPath(request.nextUrl.pathname)) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.search = "";
+      redirectUrl.searchParams.set("next", sanitizeReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`));
+      return NextResponse.redirect(redirectUrl);
+    }
     return NextResponse.next();
   }
 
@@ -39,5 +46,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  runtime: "nodejs",
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
 };

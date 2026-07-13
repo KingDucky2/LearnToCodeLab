@@ -1,19 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { learningPaths } from "@/lib/curriculum";
+import { createClient } from "@/lib/supabase/browser";
+import { getAuthErrorMessage } from "@/lib/auth-utils";
 
 const experienceLevels = ["Completely new", "Know a little", "Intermediate", "Advanced", "Not sure - assess me"];
 const goals = ["Build websites", "Build games", "Make mobile apps", "Learn fundamentals", "Prepare for school", "Improve debugging", "Prepare for a coding job"];
 const preferences = ["Detailed explanations", "More examples", "More practice", "Visual explanations", "Project-based learning", "Faster pace", "Step-by-step guidance"];
 
 export function OnboardingForm() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [experience, setExperience] = useState(experienceLevels[4]);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(["Build websites", "Improve debugging"]);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>(["More practice", "Step-by-step guidance"]);
   const [languageExperience, setLanguageExperience] = useState<Record<string, string>>(() => Object.fromEntries(learningPaths.map((path) => [path.slug, "Never used it"])));
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   const steps = useMemo(() => ["Experience", "Languages", "Goals", "Preferences", "Placement"], []);
 
@@ -21,9 +26,58 @@ export function OnboardingForm() {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   }
 
-  function saveLocalProfile() {
-    localStorage.setItem("ltcl:onboarding", JSON.stringify({ experience, languageExperience, selectedGoals, selectedPreferences, completedAt: new Date().toISOString() }));
-    setSaved(true);
+  async function saveLearningProfile() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setMessage({ type: "error", text: "Sign in again to save your learning profile." });
+        return;
+      }
+
+      const db = supabase as any;
+      const explanationStyle = selectedPreferences.includes("Detailed explanations")
+        ? "deep_dive"
+        : selectedPreferences.includes("Step-by-step guidance")
+          ? "step_by_step"
+          : "short";
+      const profileResult = await db.from("profiles").update({
+        onboarding_complete: true,
+        onboarding_completed: true,
+        experience_level: experience,
+        learning_goal: selectedGoals[0] ?? null,
+        updated_at: new Date().toISOString()
+      }).eq("id", user.id);
+      const preferencesResult = await db.from("learning_preferences").upsert({
+        user_id: user.id,
+        explanation_style: explanationStyle,
+        lesson_pace: selectedPreferences.includes("Faster pace") ? "fast" : "balanced",
+        practice_frequency: selectedPreferences.includes("More practice") ? "frequent" : "normal",
+        hint_behavior: "progressive",
+        updated_at: new Date().toISOString()
+      }, { onConflict: "user_id" });
+      const languageRows = Object.entries(languageExperience).map(([language_slug, experience_level]) => ({ user_id: user.id, language_slug, experience_level }));
+      const languageResult = await db.from("language_experience").upsert(languageRows, { onConflict: "user_id,language_slug" });
+      const deleteGoalsResult = await db.from("learning_goals").delete().eq("user_id", user.id);
+      const goalsResult = selectedGoals.length
+        ? await db.from("learning_goals").insert(selectedGoals.map((goal) => ({ user_id: user.id, goal })))
+        : { error: null };
+      const error = profileResult.error ?? preferencesResult.error ?? languageResult.error ?? deleteGoalsResult.error ?? goalsResult.error;
+      if (error) {
+        setMessage({ type: "error", text: getAuthErrorMessage(error.message) });
+        return;
+      }
+
+      setMessage({ type: "success", text: "Learning profile saved. Opening your dashboard..." });
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh();
+      }, 600);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -86,10 +140,10 @@ export function OnboardingForm() {
         {step < steps.length - 1 ? (
           <button onClick={() => setStep(step + 1)} className="rounded-xl bg-lab-navy px-4 py-3 font-black text-white">Next</button>
         ) : (
-          <button onClick={saveLocalProfile} className="rounded-xl bg-gradient-to-r from-lab-teal to-lab-blue px-4 py-3 font-black text-lab-navy">Save learning profile</button>
+          <button onClick={saveLearningProfile} disabled={saving} className="rounded-xl bg-gradient-to-r from-lab-teal to-lab-blue px-4 py-3 font-black text-lab-navy disabled:opacity-60">{saving ? "Saving..." : "Save learning profile"}</button>
         )}
       </div>
-      {saved ? <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-black text-emerald-800">Profile saved locally. Connect Supabase to persist this across devices.</p> : null}
+      {message ? <p role="status" className={`mt-4 rounded-xl p-3 text-sm font-black ${message.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>{message.text}</p> : null}
     </div>
   );
 }

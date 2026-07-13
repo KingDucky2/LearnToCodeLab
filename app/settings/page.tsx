@@ -14,16 +14,17 @@ export default async function SettingsPage() {
   if (!user) redirect("/login?next=/settings");
 
   const db = supabase as any;
-  const [{ data: profile }, { data: preferences }] = await Promise.all([
+  const [{ data: profile }, { data: preferences }, { data: learningPreferences }] = await Promise.all([
     db.from("profiles").select("preferred_language, experience_level, learning_goal").eq("id", user.id).maybeSingle(),
-    db.from("privacy_preferences").select("ai_personalization_enabled, model_improvement_opt_in, cookie_preference").eq("user_id", user.id).maybeSingle()
+    db.from("privacy_preferences").select("ai_personalization_enabled, model_improvement_opt_in, cookie_preference").eq("user_id", user.id).maybeSingle(),
+    db.from("learning_preferences").select("theme, reduced_motion, lesson_difficulty, explanation_style").eq("user_id", user.id).maybeSingle()
   ]);
 
   return (
     <PageShell>
       <SectionHeader eyebrow="Settings" title="Tune your learning system." copy="Manage security, preferences, privacy choices, and account safety from one clean place." />
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        <AccountSettingsForm email={user.email ?? "No email on account"} provider={user.app_metadata?.provider ?? "email"} profile={profile} preferences={preferences} />
+        <AccountSettingsForm email={user.email ?? "No email on account"} provider={user.app_metadata?.provider ?? "email"} profile={profile} preferences={preferences} learningPreferences={learningPreferences} />
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-lab">
           <span className="grid h-12 w-12 place-items-center rounded-xl bg-amber-100 text-amber-800">
             <FileText aria-hidden="true" className="h-6 w-6" />

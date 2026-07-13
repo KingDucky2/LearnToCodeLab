@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppNav } from "@/components/AppNav";
 import { AppFooter } from "@/components/AppFooter";
+import { ThemeInitializer } from "@/components/ThemeInitializer";
 
 export const metadata: Metadata = {
   title: "LearnToCode Lab",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        <ThemeInitializer />
         <AppNav />
         {children}
         <AppFooter />

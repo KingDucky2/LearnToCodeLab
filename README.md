@@ -62,13 +62,14 @@ The app passes `/auth/callback` as the redirect target when it starts signup, OA
 
 Run migrations in order from `supabase/migrations`, then run `supabase/seed.sql` for starter curriculum and practice questions.
 
-Current auth/profile migration:
+Current auth and settings migrations:
 
 ```text
 supabase/migrations/202607120001_production_auth_profiles.sql
+supabase/migrations/202607120002_settings_integrity.sql
 ```
 
-The profile trigger creates a private one-to-one `profiles` row from Supabase auth metadata. Row Level Security only allows authenticated users to read and update their own private profile.
+The profile trigger creates a private one-to-one `profiles` row from Supabase auth metadata. The settings migration persists display preferences and tightens the insert/update ownership policies. Row Level Security only allows authenticated users to access their own private account data.
 
 ## Auth Routes
 

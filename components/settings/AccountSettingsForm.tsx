@@ -6,6 +6,7 @@ import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordGuidance } from "@/components/auth/PasswordGuidance";
 import { getAuthErrorMessage, isStrongEnoughPassword } from "@/lib/auth-utils";
 import { createClient } from "@/lib/supabase/browser";
+import { applyDisplayPreferences, type ThemePreference } from "@/components/ThemeInitializer";
 
 type SettingsProps = {
   email: string;
@@ -20,15 +21,24 @@ type SettingsProps = {
     experience_level: string | null;
     learning_goal: string | null;
   } | null;
+  learningPreferences: {
+    theme: string;
+    reduced_motion: boolean;
+    lesson_difficulty: string;
+    explanation_style: string;
+  } | null;
 };
 
-export function AccountSettingsForm({ email, provider, preferences, profile }: SettingsProps) {
+const toLabel = (value: string) => value.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+const toValue = (value: string) => value.toLowerCase().replaceAll(" ", "_");
+
+export function AccountSettingsForm({ email, provider, preferences, profile, learningPreferences }: SettingsProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [theme, setTheme] = useState("System");
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [difficulty, setDifficulty] = useState(profile?.experience_level ?? "New coder");
-  const [detail, setDetail] = useState("Step by step");
+  const [theme, setTheme] = useState(toLabel(learningPreferences?.theme ?? "system"));
+  const [reducedMotion, setReducedMotion] = useState(learningPreferences?.reduced_motion ?? false);
+  const [difficulty, setDifficulty] = useState(toLabel(learningPreferences?.lesson_difficulty ?? profile?.experience_level ?? "new_coder"));
+  const [detail, setDetail] = useState(toLabel(learningPreferences?.explanation_style ?? "step_by_step"));
   const [preferredLanguage, setPreferredLanguage] = useState(profile?.preferred_language ?? "JavaScript");
   const [aiPersonalization, setAiPersonalization] = useState(preferences?.ai_personalization_enabled ?? true);
   const [modelImprovement, setModelImprovement] = useState(preferences?.model_improvement_opt_in ?? false);
@@ -77,7 +87,7 @@ export function AccountSettingsForm({ email, provider, preferences, profile }: S
       }
 
       const db = supabase as any;
-      const [profileResult, privacyResult] = await Promise.all([
+      const [profileResult, privacyResult, learningResult] = await Promise.all([
         db
           .from("profiles")
           .update({
@@ -92,13 +102,32 @@ export function AccountSettingsForm({ email, provider, preferences, profile }: S
             user_id: user.id,
             ai_personalization_enabled: aiPersonalization,
             model_improvement_opt_in: modelImprovement,
-            cookie_preference: reducedMotion ? "essential" : "essential",
+            cookie_preference: preferences?.cookie_preference ?? "essential",
             updated_at: new Date().toISOString()
-          })
+          }, { onConflict: "user_id" }),
+        db
+          .from("learning_preferences")
+          .upsert({
+            user_id: user.id,
+            theme: toValue(theme),
+            reduced_motion: reducedMotion,
+            lesson_difficulty: toValue(difficulty),
+            explanation_style: toValue(detail),
+            updated_at: new Date().toISOString()
+          }, { onConflict: "user_id" })
       ]);
 
-      const error = profileResult.error ?? privacyResult.error;
-      setMessage(error ? { type: "error", text: getAuthErrorMessage(error.message) } : { type: "success", text: "Settings saved." });
+      const error = profileResult.error ?? privacyResult.error ?? learningResult.error;
+      if (error) {
+        setMessage({ type: "error", text: getAuthErrorMessage(error.message) });
+        return;
+      }
+
+      const normalizedTheme = toValue(theme) as ThemePreference;
+      localStorage.setItem("ltcl:theme", normalizedTheme);
+      localStorage.setItem("ltcl:reduced-motion", String(reducedMotion));
+      applyDisplayPreferences(normalizedTheme, reducedMotion);
+      setMessage({ type: "success", text: "Settings saved." });
     } finally {
       setLoading(null);
     }
@@ -129,7 +158,11 @@ export function AccountSettingsForm({ email, provider, preferences, profile }: S
 
     setLoading("delete");
     try {
-      const response = await fetch("/api/account/delete", { method: "POST" });
+      const response = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmation: deleteText })
+      });
       const body = (await response.json()) as { message?: string };
       if (!response.ok) {
         setMessage({ type: "error", text: body.message ?? "Account deletion is not configured yet." });

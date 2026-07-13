@@ -3,7 +3,12 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/types";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const body = (await request.json().catch(() => null)) as { confirmation?: string } | null;
+  if (body?.confirmation !== "DELETE") {
+    return NextResponse.json({ message: "Type DELETE to confirm account deletion." }, { status: 400 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user }
@@ -20,13 +25,6 @@ export async function POST() {
     return NextResponse.json({ message: "Account deletion needs a server-only Supabase service-role key configured in Vercel." }, { status: 501 });
   }
 
-  const db = supabase as any;
-  await db.from("lesson_progress").delete().eq("user_id", user.id);
-  await db.from("skill_scores").delete().eq("user_id", user.id);
-  await db.from("attempts").delete().eq("user_id", user.id);
-  await db.from("privacy_preferences").delete().eq("user_id", user.id);
-  await db.from("profiles").delete().eq("id", user.id);
-
   const admin = createAdminClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -36,6 +34,5 @@ export async function POST() {
     return NextResponse.json({ message: "Account deletion could not be completed. Please contact support." }, { status: 500 });
   }
 
-  await supabase.auth.signOut();
-  return NextResponse.json({ message: "Account deleted." });
+  return NextResponse.json({ message: "Account deleted." }, { headers: { "Cache-Control": "no-store" } });
 }
