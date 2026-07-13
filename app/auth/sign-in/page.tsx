@@ -1,10 +1,5 @@
-import { AuthForm } from "@/components/AuthForm";
-import { PageShell } from "@/components/PageShell";
+import { redirect } from "next/navigation";
 
-export default function SignInPage() {
-  return (
-    <PageShell narrow>
-      <AuthForm mode="sign-in" />
-    </PageShell>
-  );
+export default function LegacySignInPage() {
+  redirect("/login");
 }

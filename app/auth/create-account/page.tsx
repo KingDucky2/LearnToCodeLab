@@ -1,10 +1,5 @@
-import { AuthForm } from "@/components/AuthForm";
-import { PageShell } from "@/components/PageShell";
+import { redirect } from "next/navigation";
 
-export default function CreateAccountPage() {
-  return (
-    <PageShell narrow>
-      <AuthForm mode="create-account" />
-    </PageShell>
-  );
+export default function LegacyCreateAccountPage() {
+  redirect("/signup");
 }

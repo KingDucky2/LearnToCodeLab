@@ -1,15 +1,31 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageShell, SectionHeader } from "@/components/PageShell";
+import { createClient } from "@/lib/supabase/server";
 
-const controls = [
-  ["AI personalization", "Use private progress and lesson history to recommend lessons and practice.", "On by default"],
-  ["Help improve LearnToCode Lab", "Allow anonymized learning interactions, mistakes, feedback ratings, and examples to improve educational systems.", "Off by default"],
-  ["Cookie and preference choices", "Store basic preferences needed for sign-in, accessibility, and learning continuity.", "Essential only"],
-  ["Data export", "Request a copy of profile, progress, attempts, projects, and privacy settings.", "Available"],
-  ["Delete account", "Request deletion of account data and learning history.", "Available"]
-];
+export default async function PrivacyPage() {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
 
-export default function PrivacyPage() {
+  if (!user) redirect("/login?next=/settings/privacy");
+
+  const db = supabase as any;
+  const { data: preferences } = await db
+    .from("privacy_preferences")
+    .select("ai_personalization_enabled, model_improvement_opt_in, cookie_preference")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const controls = [
+    ["AI personalization", "Use private progress and lesson history to recommend lessons and practice.", preferences?.ai_personalization_enabled ? "On" : "Off"],
+    ["Help improve LearnToCode Lab", "Allow anonymized learning interactions, mistakes, feedback ratings, and examples to improve educational systems.", preferences?.model_improvement_opt_in ? "On" : "Off"],
+    ["Cookie and preference choices", "Store basic preferences needed for sign-in, accessibility, and learning continuity.", preferences?.cookie_preference ?? "essential"],
+    ["Data export", "Request a copy of profile, progress, attempts, projects, and privacy settings.", "Planned"],
+    ["Delete account", "Request deletion of account data and learning history.", "Available in settings"]
+  ];
+
   return (
     <PageShell>
       <SectionHeader eyebrow="Privacy" title="Control your learning data." copy="Personalization and broader improvement permissions are separate, so learners can keep useful recommendations without giving up control." />
@@ -37,6 +53,9 @@ export default function PrivacyPage() {
           </Link>
           <Link href="/terms" className="rounded-xl border border-slate-200 px-4 py-3 font-black text-lab-navy hover:border-lab-blue hover:text-lab-blue">
             Read Terms
+          </Link>
+          <Link href="/settings" className="rounded-xl bg-lab-navy px-4 py-3 font-black text-white">
+            Edit privacy settings
           </Link>
         </div>
       </div>

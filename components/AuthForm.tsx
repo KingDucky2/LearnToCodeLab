@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClientSideSupabase, hasSupabaseEnv } from "@/lib/supabase";
 
 type Mode = "sign-in" | "create-account";
 
 export function AuthForm({ mode }: { mode: Mode }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -32,7 +34,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
         setMessage(result.error.message);
         return;
       }
-      setMessage(isCreate ? "Check your email to verify your account, then continue onboarding." : "Signed in. Open your dashboard to continue.");
+      if (isCreate) {
+        setMessage("Check your email to verify your account, then continue onboarding.");
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+      }
     } finally {
       setLoading(false);
     }
@@ -49,7 +56,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
       const supabase = createClientSideSupabase();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboarding` }
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=/dashboard` }
       });
       if (error) setMessage(error.message);
     } finally {
@@ -67,7 +74,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
       return;
     }
     const supabase = createClientSideSupabase();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/settings` });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth/callback?next=/reset-password` });
     setMessage(error ? error.message : "Password reset email sent.");
   }
 
@@ -106,10 +113,18 @@ export function AuthForm({ mode }: { mode: Mode }) {
       {message ? <p className="mt-4 rounded-xl bg-slate-100 p-3 text-sm font-bold text-slate-700">{message}</p> : null}
       <p className="mt-5 text-sm text-slate-600">
         {isCreate ? "Already have an account?" : "New here?"}{" "}
-        <Link className="font-black text-lab-blue" href={isCreate ? "/auth/sign-in" : "/auth/create-account"}>
+        <Link className="font-black text-lab-blue" href={isCreate ? "/login" : "/signup"}>
           {isCreate ? "Sign in" : "Create account"}
         </Link>
       </p>
+      {!isCreate ? (
+        <p className="mt-2 text-sm text-slate-600">
+          Need a dedicated reset page?{" "}
+          <Link className="font-black text-lab-blue" href="/forgot-password">
+            Open forgot password
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }
