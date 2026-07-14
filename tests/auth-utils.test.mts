@@ -50,7 +50,7 @@ test("maintenance routing excludes critical routes and prevents loops", () => {
   assert.equal(isMaintenanceBypassPath("/forgot-password"), true);
   assert.equal(isMaintenanceBypassPath("/reset-password"), true);
   assert.equal(isMaintenanceBypassPath("/api/maintenance/status"), true);
-  assert.equal(isMaintenanceBypassPath("/learntocodelab-logo.png"), true);
+  assert.equal(isMaintenanceBypassPath("/learntocodelab-logo-light.png"), true);
   assert.equal(isMaintenanceBypassPath("/_next/static/chunks/app.js"), true);
   assert.equal(isMaintenanceBypassPath("/favicon-32x32.png"), true);
   assert.equal(isMaintenanceBypassPath("/admin"), false);
