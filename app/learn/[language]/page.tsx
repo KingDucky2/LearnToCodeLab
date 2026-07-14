@@ -14,23 +14,23 @@ export default async function LanguagePathPage({ params }: { params: Promise<{ l
 
   return (
     <PageShell>
-      <div className="glass rounded-[2rem] p-7">
+      <div className="glass rounded-lg p-7">
         <div className={`mb-6 h-2 rounded-full bg-gradient-to-r ${path.color}`} />
         <p className="text-xs font-black uppercase text-amber-700">Learning path</p>
-        <h1 className="mt-2 text-5xl font-black text-lab-navy">{path.title}</h1>
-        <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">{path.description}</p>
+        <h1 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">{path.title}</h1>
+        <p className="mt-4 max-w-3xl text-lg leading-8 text-muted">{path.description}</p>
       </div>
       <div className="mt-5 grid gap-5">
         {path.modules.map((module) => (
-          <section key={module.title} className="glass rounded-[2rem] p-6">
-            <p className="text-xs font-black uppercase text-lab-blue">{module.level}</p>
-            <h2 className="mt-2 text-3xl font-black text-lab-navy">{module.title}</h2>
+          <section key={module.title} className="glass rounded-lg p-6">
+            <p className="text-xs font-black uppercase text-primary">{module.level}</p>
+            <h2 className="mt-2 text-3xl font-black text-foreground">{module.title}</h2>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {module.lessons.map((lesson) => (
-                <Link key={lesson.slug} href={`/learn/${path.slug}/${lesson.slug}`} className="rounded-2xl border border-slate-200 bg-white p-5">
-                  <h3 className="text-xl font-black text-lab-navy">{lesson.title}</h3>
-                  <p className="mt-2 text-slate-600">{lesson.objective}</p>
-                  <p className="mt-4 text-sm font-black text-lab-blue">{lesson.estimatedMinutes} min lesson</p>
+                <Link key={lesson.slug} href={`/learn/${path.slug}/${lesson.slug}`} className="rounded-lg border border-border bg-surface p-5">
+                  <h3 className="text-xl font-black text-foreground">{lesson.title}</h3>
+                  <p className="mt-2 text-muted">{lesson.objective}</p>
+                  <p className="mt-4 text-sm font-black text-primary">{lesson.estimatedMinutes} min lesson</p>
                 </Link>
               ))}
             </div>

@@ -76,33 +76,33 @@ export function LoginForm() {
   }
 
   return (
-    <div className="glass rounded-3xl p-6">
+    <div className="glass rounded-lg p-6">
       <div className="mb-6">
         <p className="text-xs font-black uppercase text-amber-700">Sign in</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-lab-navy">Continue learning.</h1>
-        <p className="mt-3 text-slate-600">Sign in with email or Google to reach your dashboard and saved progress.</p>
+        <h1 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">Continue learning.</h1>
+        <p className="mt-3 text-muted">Sign in with email or Google to reach your dashboard and saved progress.</p>
       </div>
 
       <form className="grid gap-3" onSubmit={handleSubmit} noValidate>
-        <label htmlFor="email" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="email" className="form-label">
           Email
-          <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3" type="email" autoComplete="email" placeholder="you@example.com" />
+          <input id="email" value={email} onChange={(event) => setEmail(event.target.value)} className="form-control" type="email" autoComplete="email" placeholder="you@example.com" />
         </label>
         <PasswordField id="password" label="Password" value={password} onChange={setPassword} autoComplete="current-password" placeholder="Your password" />
-        <button disabled={loading} className="rounded-xl bg-gradient-to-r from-lab-teal to-lab-blue px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+        <button disabled={loading} className="btn-primary">
           {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
 
-      <button disabled={loading} onClick={handleGoogle} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+      <button disabled={loading} onClick={handleGoogle} className="mt-3 w-full btn-outline">
         Continue with Google
       </button>
 
       <div className="mt-4 flex flex-wrap justify-between gap-3 text-sm">
-        <Link className="font-black text-lab-blue" href="/forgot-password">
+        <Link className="font-black text-primary" href="/forgot-password">
           Forgot password?
         </Link>
-        <Link className="font-black text-lab-blue" href={`/signup?next=${encodeURIComponent(next)}`}>
+        <Link className="font-black text-primary" href={`/signup?next=${encodeURIComponent(next)}`}>
           Create Account
         </Link>
       </div>

@@ -107,51 +107,51 @@ export function SignupForm() {
   }
 
   return (
-    <div className="glass rounded-3xl p-6">
+    <div className="glass rounded-lg p-6">
       <div className="mb-6">
         <p className="text-xs font-black uppercase text-amber-700">Create account</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight text-lab-navy">Start your adaptive path.</h1>
-        <p className="mt-3 text-slate-600">Accounts unlock cross-device progress, onboarding, skill scores, and privacy controls.</p>
+        <h1 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">Start your adaptive path.</h1>
+        <p className="mt-3 text-muted">Accounts unlock cross-device progress, onboarding, skill scores, and privacy controls.</p>
       </div>
 
       <form className="grid gap-3" onSubmit={handleSubmit} noValidate>
-        <label htmlFor="display-name" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="display-name" className="form-label">
           Display name
-          <input id="display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3" type="text" autoComplete="name" placeholder="Luke Learner" />
+          <input id="display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="form-control" type="text" autoComplete="name" placeholder="Luke Learner" />
         </label>
-        <label htmlFor="signup-email" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="signup-email" className="form-label">
           Email
-          <input id="signup-email" value={email} onChange={(event) => setEmail(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3" type="email" autoComplete="email" placeholder="you@example.com" />
+          <input id="signup-email" value={email} onChange={(event) => setEmail(event.target.value)} className="form-control" type="email" autoComplete="email" placeholder="you@example.com" />
         </label>
         <PasswordField id="signup-password" label="Password" value={password} onChange={setPassword} autoComplete="new-password" placeholder="At least 8 characters" />
         <PasswordGuidance password={password} />
         <PasswordField id="confirm-password" label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" placeholder="Repeat your password" />
-        <label className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-700">
+        <label className="flex gap-3 rounded-lg border border-border bg-surface p-3 text-sm font-bold text-secondary">
           <input checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} type="checkbox" className="mt-1 h-4 w-4" />
           <span>
             I agree to the{" "}
-            <Link className="text-lab-blue" href="/terms">
+            <Link className="text-primary" href="/terms">
               Terms
             </Link>{" "}
             and{" "}
-            <Link className="text-lab-blue" href="/privacy">
+            <Link className="text-primary" href="/privacy">
               Privacy Policy
             </Link>
             .
           </span>
         </label>
-        <button disabled={loading} className="rounded-xl bg-gradient-to-r from-lab-teal to-lab-blue px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+        <button disabled={loading} className="btn-primary">
           {loading ? "Creating..." : "Create Account"}
         </button>
       </form>
 
-      <button disabled={loading} onClick={handleGoogle} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+      <button disabled={loading} onClick={handleGoogle} className="mt-3 w-full btn-outline">
         Continue with Google
       </button>
 
-      <p className="mt-5 text-sm text-slate-600">
+      <p className="mt-5 text-sm text-muted">
         Already have an account?{" "}
-        <Link className="font-black text-lab-blue" href={`/login?next=${encodeURIComponent(next)}`}>
+        <Link className="font-black text-primary" href={`/login?next=${encodeURIComponent(next)}`}>
           Sign In
         </Link>
       </p>

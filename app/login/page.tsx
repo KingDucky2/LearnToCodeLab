@@ -14,7 +14,7 @@ export default async function LoginPage() {
 
   return (
     <PageShell narrow>
-      <Suspense fallback={<div className="glass rounded-3xl p-6 font-black text-lab-navy">Loading sign in...</div>}>
+      <Suspense fallback={<div className="glass rounded-lg p-6 font-black text-foreground">Loading sign in...</div>}>
         <LoginForm />
       </Suspense>
     </PageShell>

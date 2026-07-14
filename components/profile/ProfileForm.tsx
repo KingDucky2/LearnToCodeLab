@@ -88,52 +88,52 @@ export function ProfileForm({ profile }: ProfileFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-lab">
+    <form onSubmit={handleSubmit} className="grid gap-4 surface-panel">
       <div className="grid gap-4 md:grid-cols-2">
-        <label htmlFor="display-name" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="display-name" className="form-label">
           Display name
-          <input id="display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3" autoComplete="name" />
+          <input id="display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} className="form-control" autoComplete="name" />
         </label>
-        <label htmlFor="username" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="username" className="form-label">
           Username
-          <input id="username" value={username} onChange={(event) => setUsername(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3" autoComplete="username" placeholder="lowercase_name" />
+          <input id="username" value={username} onChange={(event) => setUsername(event.target.value)} className="form-control" autoComplete="username" placeholder="lowercase_name" />
         </label>
       </div>
-      <label htmlFor="avatar-url" className="grid gap-2 text-sm font-extrabold text-slate-700">
+      <label htmlFor="avatar-url" className="form-label">
         Avatar URL
-        <input id="avatar-url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3" type="url" placeholder="https://..." />
+        <input id="avatar-url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} className="form-control" type="url" placeholder="https://..." />
       </label>
-      <label htmlFor="bio" className="grid gap-2 text-sm font-extrabold text-slate-700">
+      <label htmlFor="bio" className="form-label">
         Bio
-        <textarea id="bio" value={bio} onChange={(event) => setBio(event.target.value)} className="min-h-28 rounded-xl border border-slate-200 px-4 py-3" maxLength={280} placeholder="What are you learning right now?" />
+        <textarea id="bio" value={bio} onChange={(event) => setBio(event.target.value)} className="min-h-28 form-control" maxLength={280} placeholder="What are you learning right now?" />
       </label>
       <div className="grid gap-4 md:grid-cols-3">
-        <label htmlFor="preferred-language" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="preferred-language" className="form-label">
           Preferred language
-          <select id="preferred-language" value={preferredLanguage} onChange={(event) => setPreferredLanguage(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3">
+          <select id="preferred-language" value={preferredLanguage} onChange={(event) => setPreferredLanguage(event.target.value)} className="form-control">
             {languages.map((language) => (
               <option key={language}>{language}</option>
             ))}
           </select>
         </label>
-        <label htmlFor="experience-level" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="experience-level" className="form-label">
           Experience level
-          <select id="experience-level" value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3">
+          <select id="experience-level" value={experienceLevel} onChange={(event) => setExperienceLevel(event.target.value)} className="form-control">
             {experienceLevels.map((level) => (
               <option key={level}>{level}</option>
             ))}
           </select>
         </label>
-        <label htmlFor="learning-goal" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="learning-goal" className="form-label">
           Learning goal
-          <select id="learning-goal" value={learningGoal} onChange={(event) => setLearningGoal(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3">
+          <select id="learning-goal" value={learningGoal} onChange={(event) => setLearningGoal(event.target.value)} className="form-control">
             {goals.map((goal) => (
               <option key={goal}>{goal}</option>
             ))}
           </select>
         </label>
       </div>
-      <button disabled={loading} className="rounded-xl bg-lab-navy px-4 py-3 font-black text-white disabled:opacity-60">
+      <button disabled={loading} className="btn-primary">
         {loading ? "Saving..." : "Save profile"}
       </button>
       {message ? <AuthMessage type={message.type}>{message.text}</AuthMessage> : null}

@@ -33,13 +33,13 @@ export default function PrivacyPolicyPage() {
       <SectionHeader eyebrow="Privacy Policy" title="Privacy at LearnToCode Lab." copy="This page explains the product's intended privacy approach for learner accounts, progress, personalization, and data controls." />
       <div className="space-y-4">
         {sections.map((section) => (
-          <section key={section.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lab">
-            <h2 className="text-2xl font-black text-lab-navy">{section.title}</h2>
-            <p className="mt-3 leading-8 text-slate-600">{section.copy}</p>
+          <section key={section.title} className="surface-panel">
+            <h2 className="text-2xl font-black text-foreground">{section.title}</h2>
+            <p className="mt-3 leading-8 text-muted">{section.copy}</p>
           </section>
         ))}
       </div>
-      <p className="mt-6 text-sm font-bold text-slate-500">Last updated: July 12, 2026</p>
+      <p className="mt-6 text-sm font-bold text-subtle">Last updated: July 12, 2026</p>
     </PageShell>
   );
 }

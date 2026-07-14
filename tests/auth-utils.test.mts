@@ -85,11 +85,19 @@ test("maintenance migration enforces RLS, role checks, and atomic admin saves", 
 test("onboarding keeps accessible selected states and responsive navigation", () => {
   const onboarding = readFileSync(new URL("../components/OnboardingForm.tsx", import.meta.url), "utf8");
   const navigation = readFileSync(new URL("../components/AppNavClient.tsx", import.meta.url), "utf8");
+  const practice = readFileSync(new URL("../components/PracticeEngine.tsx", import.meta.url), "utf8");
   assert.match(onboarding, /role=\{multi \? "group" : "radiogroup"\}/);
   assert.match(onboarding, /aria-checked=\{isSelected\}/);
   assert.match(onboarding, /bg-\[#dff1ff\] text-\[#06172f\]/);
   assert.match(onboarding, /md:grid-cols-2/);
   assert.match(onboarding, /focus-visible:ring/);
+  assert.match(onboarding, /disabled:text-slate-200/);
   assert.match(navigation, /aria-controls="mobile-navigation"/);
+  assert.match(navigation, /aria-expanded=\{menuOpen\}/);
   assert.match(navigation, /lg:hidden/);
+  assert.match(navigation, /learntocodelab-logo-light\.png/);
+  assert.match(navigation, /learntocodelab-logo-dark\.png/);
+  assert.match(navigation, /<details/);
+  assert.match(practice, /role="radiogroup"/);
+  assert.match(practice, /aria-checked=\{selected === choice\}/);
 });

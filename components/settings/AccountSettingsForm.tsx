@@ -178,33 +178,33 @@ export function AccountSettingsForm({ email, provider, preferences, profile, lea
     <div className="grid gap-6">
       {message ? <AuthMessage type={message.type}>{message.text}</AuthMessage> : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lab">
-        <h2 className="text-2xl font-black text-lab-navy">Security</h2>
+      <section className="surface-panel">
+        <h2 className="text-2xl font-black text-foreground">Security</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase text-slate-500">Account email</p>
-            <p className="mt-1 font-black text-lab-navy">{email}</p>
+          <div className="rounded-lg bg-surface-interactive p-4">
+            <p className="text-xs font-black uppercase text-subtle">Account email</p>
+            <p className="mt-1 font-black text-foreground">{email}</p>
           </div>
-          <div className="rounded-xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase text-slate-500">Google connection</p>
-            <p className="mt-1 font-black text-lab-navy">{provider === "google" ? "Connected" : "Not connected"}</p>
+          <div className="rounded-lg bg-surface-interactive p-4">
+            <p className="text-xs font-black uppercase text-subtle">Google connection</p>
+            <p className="mt-1 font-black text-foreground">{provider === "google" ? "Connected" : "Not connected"}</p>
           </div>
         </div>
         <form onSubmit={changePassword} className="mt-5 grid gap-3">
           <PasswordField id="settings-new-password" label="Change password" value={newPassword} onChange={setNewPassword} autoComplete="new-password" placeholder="New password" />
           <PasswordGuidance password={newPassword} />
           <PasswordField id="settings-confirm-password" label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" placeholder="Repeat new password" />
-          <button disabled={loading === "password"} className="rounded-xl bg-lab-navy px-4 py-3 font-black text-white disabled:opacity-60">
+          <button disabled={loading === "password"} className="btn-primary">
             {loading === "password" ? "Updating..." : "Update password"}
           </button>
         </form>
-        <button onClick={signOutEverywhere} disabled={loading === "signout"} className="mt-3 rounded-xl border border-slate-200 px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+        <button onClick={signOutEverywhere} disabled={loading === "signout"} className="mt-3 btn-outline">
           {loading === "signout" ? "Signing out..." : "Sign out all sessions"}
         </button>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lab">
-        <h2 className="text-2xl font-black text-lab-navy">Preferences</h2>
+      <section className="surface-panel">
+        <h2 className="text-2xl font-black text-foreground">Preferences</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {[
             ["Theme", theme, setTheme, ["System", "Light", "Dark"]],
@@ -212,9 +212,9 @@ export function AccountSettingsForm({ email, provider, preferences, profile, lea
             ["Explanation detail", detail, setDetail, ["Short", "Step by step", "Deep dive"]],
             ["Preferred coding language", preferredLanguage, setPreferredLanguage, ["HTML", "CSS", "JavaScript", "Python", "C++", "Swift", "Lua"]]
           ].map(([label, value, setter, options]) => (
-            <label key={label as string} className="grid gap-2 text-sm font-extrabold text-slate-700">
+            <label key={label as string} className="form-label">
               {label as string}
-              <select value={value as string} onChange={(event) => (setter as (value: string) => void)(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3">
+              <select value={value as string} onChange={(event) => (setter as (value: string) => void)(event.target.value)} className="form-control">
                 {(options as string[]).map((option) => (
                   <option key={option}>{option}</option>
                 ))}
@@ -222,44 +222,44 @@ export function AccountSettingsForm({ email, provider, preferences, profile, lea
             </label>
           ))}
         </div>
-        <label className="mt-4 flex gap-3 rounded-xl border border-slate-200 p-4 text-sm font-bold text-slate-700">
+        <label className="form-choice mt-4">
           <input checked={reducedMotion} onChange={(event) => setReducedMotion(event.target.checked)} type="checkbox" className="mt-1 h-4 w-4" />
           Reduce motion where possible
         </label>
-        <button onClick={savePreferences} disabled={loading === "preferences"} className="mt-4 rounded-xl bg-gradient-to-r from-lab-teal to-lab-blue px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+        <button onClick={savePreferences} disabled={loading === "preferences"} className="mt-4 btn-primary">
           {loading === "preferences" ? "Saving..." : "Save preferences"}
         </button>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lab">
-        <h2 className="text-2xl font-black text-lab-navy">Privacy</h2>
+      <section className="surface-panel">
+        <h2 className="text-2xl font-black text-foreground">Privacy</h2>
         <div className="mt-4 grid gap-3">
-          <label className="flex gap-3 rounded-xl border border-slate-200 p-4 text-sm font-bold text-slate-700">
+          <label className="form-choice">
             <input checked={aiPersonalization} onChange={(event) => setAiPersonalization(event.target.checked)} type="checkbox" className="mt-1 h-4 w-4" />
             AI personalization for lesson recommendations
           </label>
-          <label className="flex gap-3 rounded-xl border border-slate-200 p-4 text-sm font-bold text-slate-700">
+          <label className="form-choice">
             <input checked={modelImprovement} onChange={(event) => setModelImprovement(event.target.checked)} type="checkbox" className="mt-1 h-4 w-4" />
             Optional anonymized model-improvement consent
           </label>
         </div>
-        <button onClick={savePreferences} disabled={loading === "preferences"} className="mt-4 rounded-xl border border-slate-200 px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+        <button onClick={savePreferences} disabled={loading === "preferences"} className="mt-4 btn-outline">
           Save privacy choices
         </button>
-        <div className="mt-5 rounded-xl bg-slate-50 p-4">
-          <p className="font-black text-lab-navy">Data export</p>
-          <p className="mt-1 text-sm text-slate-600">Export requests will be handled from this settings area when the account data export worker is connected.</p>
+        <div className="mt-5 rounded-lg bg-surface-interactive p-4">
+          <p className="font-black text-foreground">Data export</p>
+          <p className="mt-1 text-sm text-muted">Export requests will be handled from this settings area when the account data export worker is connected.</p>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-red-200 bg-red-50 p-6">
-        <h2 className="text-2xl font-black text-red-900">Delete account</h2>
-        <p className="mt-2 text-sm font-bold text-red-800">This requires explicit confirmation and a server-only Supabase service-role key configured in Vercel. The key is never exposed to browser code.</p>
-        <label htmlFor="delete-confirm" className="mt-4 grid gap-2 text-sm font-extrabold text-red-900">
+      <section className="danger-panel p-6">
+        <h2 className="text-2xl font-black text-danger">Delete account</h2>
+        <p className="mt-2 text-sm font-bold text-secondary">This requires explicit confirmation and a server-only Supabase service-role key configured in Vercel. The key is never exposed to browser code.</p>
+        <label htmlFor="delete-confirm" className="form-label mt-4">
           Type DELETE to confirm
-          <input id="delete-confirm" value={deleteText} onChange={(event) => setDeleteText(event.target.value)} className="rounded-xl border border-red-200 px-4 py-3" autoComplete="off" />
+          <input id="delete-confirm" value={deleteText} onChange={(event) => setDeleteText(event.target.value)} className="form-control" autoComplete="off" />
         </label>
-        <button onClick={deleteAccount} disabled={loading === "delete"} className="mt-4 rounded-xl bg-red-700 px-4 py-3 font-black text-white disabled:opacity-60">
+        <button onClick={deleteAccount} disabled={loading === "delete"} className="btn-danger mt-4">
           {loading === "delete" ? "Requesting deletion..." : "Delete account"}
         </button>
       </section>

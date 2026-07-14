@@ -43,17 +43,17 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <div className="glass rounded-3xl p-6">
+    <div className="glass rounded-lg p-6">
       <p className="text-xs font-black uppercase text-amber-700">Password reset</p>
-      <h1 className="mt-2 text-4xl font-black tracking-tight text-lab-navy">Get back into your account.</h1>
-      <p className="mt-3 text-slate-600">Enter your email and LearnToCode Lab will send a secure reset link if the account exists.</p>
+      <h1 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">Get back into your account.</h1>
+      <p className="mt-3 text-muted">Enter your email and LearnToCode Lab will send a secure reset link if the account exists.</p>
 
       <form className="mt-6 grid gap-3" onSubmit={handleReset} noValidate>
-        <label htmlFor="reset-email" className="grid gap-2 text-sm font-extrabold text-slate-700">
+        <label htmlFor="reset-email" className="form-label">
           Email
-          <input id="reset-email" value={email} onChange={(event) => setEmail(event.target.value)} className="rounded-xl border border-slate-200 px-4 py-3" type="email" autoComplete="email" placeholder="you@example.com" />
+          <input id="reset-email" value={email} onChange={(event) => setEmail(event.target.value)} className="form-control" type="email" autoComplete="email" placeholder="you@example.com" />
         </label>
-        <button disabled={loading} className="rounded-xl bg-gradient-to-r from-lab-teal to-lab-blue px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+        <button disabled={loading} className="btn-primary">
           {loading ? "Sending..." : "Send reset link"}
         </button>
       </form>
@@ -64,7 +64,7 @@ export function ForgotPasswordForm() {
         </div>
       ) : null}
 
-      <Link href="/login" className="mt-5 inline-flex text-sm font-black text-lab-blue">
+      <Link href="/login" className="mt-5 inline-flex text-sm font-black text-primary">
         Back to sign in
       </Link>
     </div>

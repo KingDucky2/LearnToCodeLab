@@ -196,7 +196,7 @@ export function OnboardingForm() {
               Next<ChevronRight className="h-4 w-4" aria-hidden="true" />
             </button>
           ) : (
-            <button type="button" onClick={saveLearningProfile} disabled={saving} className="inline-flex min-h-12 flex-[1.5] items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-lab-teal to-lab-blue px-6 py-3 font-black text-[#06172f] shadow-[0_10px_28px_rgba(2,201,149,0.2)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300/50 disabled:cursor-wait disabled:opacity-65 sm:flex-none sm:min-w-56">
+            <button type="button" onClick={saveLearningProfile} disabled={saving} className="inline-flex min-h-12 flex-[1.5] items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-lab-teal to-lab-blue px-6 py-3 font-black text-[#06172f] shadow-[0_10px_28px_rgba(2,201,149,0.2)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300/50 disabled:cursor-wait disabled:bg-slate-700 disabled:text-slate-200 disabled:shadow-none sm:flex-none sm:min-w-56">
               {saving ? <LoaderCircle className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}{saving ? "Saving..." : "Save learning profile"}
             </button>
           )}

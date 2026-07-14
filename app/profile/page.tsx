@@ -31,31 +31,31 @@ export default async function ProfilePage() {
     <PageShell>
       <SectionHeader eyebrow="Profile" title="Your learner identity." copy="Profile data connects account settings, onboarding, learning goals, privacy preferences, and progress records." />
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-        <aside className="glass rounded-[2rem] p-6">
+        <aside className="glass rounded-lg p-6">
           <div className="flex flex-wrap items-center gap-5">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-24 w-24 rounded-3xl object-cover shadow-lab" />
+              <img src={avatarUrl} alt="" className="h-24 w-24 rounded-lg object-cover shadow-lab" />
             ) : (
-              <div className="grid h-24 w-24 place-items-center rounded-3xl bg-lab-blue/10 text-4xl font-black text-lab-blue">{displayName.slice(0, 1).toUpperCase()}</div>
+              <div className="grid h-24 w-24 place-items-center rounded-lg bg-lab-blue/10 text-4xl font-black text-primary">{displayName.slice(0, 1).toUpperCase()}</div>
             )}
             <div>
-              <h2 className="text-3xl font-black text-lab-navy">{displayName}</h2>
-              <p className="mt-2 text-slate-600">{user.email}</p>
+              <h2 className="text-3xl font-black text-foreground">{displayName}</h2>
+              <p className="mt-2 text-muted">{user.email}</p>
             </div>
           </div>
           <div className="mt-6 grid gap-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-black uppercase text-slate-500">Username</p>
-              <p className="mt-1 font-black text-lab-navy">{profile?.username ? `@${profile.username}` : "Not set"}</p>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <p className="text-xs font-black uppercase text-subtle">Username</p>
+              <p className="mt-1 font-black text-foreground">{profile?.username ? `@${profile.username}` : "Not set"}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-black uppercase text-slate-500">Provider</p>
-              <p className="mt-1 font-black text-lab-navy">{providerLabel(provider)}</p>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <p className="text-xs font-black uppercase text-subtle">Provider</p>
+              <p className="mt-1 font-black text-foreground">{providerLabel(provider)}</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-black uppercase text-slate-500">Joined</p>
-              <p className="mt-1 font-black text-lab-navy">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "Recently"}</p>
+            <div className="rounded-lg border border-border bg-surface p-4">
+              <p className="text-xs font-black uppercase text-subtle">Joined</p>
+              <p className="mt-1 font-black text-foreground">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "Recently"}</p>
             </div>
           </div>
         </aside>

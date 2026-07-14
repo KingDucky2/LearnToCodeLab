@@ -9,9 +9,9 @@ export function PasswordGuidance({ password }: { password: string }) {
   ] as const;
 
   return (
-    <ul className="grid gap-1 text-xs font-bold text-slate-600">
+    <ul className="grid gap-1 text-xs font-bold text-muted">
       {items.map(([label, passed]) => (
-        <li key={label} className={passed ? "text-emerald-700" : "text-slate-500"}>
+        <li key={label} className={passed ? "text-emerald-700" : "text-subtle"}>
           {passed ? "✓" : "•"} {label}
         </li>
       ))}

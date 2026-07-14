@@ -8,14 +8,14 @@ const footerLinks = [
 
 export function AppFooter() {
   return (
-    <footer className="mx-auto mt-12 flex w-[min(1180px,calc(100%_-_24px))] flex-col gap-4 border-t border-slate-200 py-8 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+    <footer className="mx-auto mt-10 flex w-[min(1180px,calc(100%_-_24px))] flex-col gap-4 border-t border-border py-8 text-sm text-muted md:flex-row md:items-center md:justify-between">
       <div>
-        <p className="font-black text-lab-navy">LearnToCode Lab</p>
+        <p className="font-black text-foreground">LearnToCode Lab</p>
         <p className="mt-1">Adaptive coding lessons with clear privacy choices.</p>
       </div>
       <nav className="flex flex-wrap gap-3">
         {footerLinks.map((link) => (
-          <Link key={link.href} href={link.href} className="font-extrabold hover:text-lab-blue">
+          <Link key={link.href} href={link.href} className="rounded font-extrabold hover:text-primary focus-visible:outline-none">
             {link.label}
           </Link>
         ))}

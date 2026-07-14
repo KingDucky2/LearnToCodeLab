@@ -84,16 +84,16 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <div className="glass rounded-3xl p-6">
+    <div className="glass rounded-lg p-6">
       <p className="text-xs font-black uppercase text-amber-700">New password</p>
-      <h1 className="mt-2 text-4xl font-black tracking-tight text-lab-navy">Create a new password.</h1>
-      <p className="mt-3 text-slate-600">Use the reset link from your email, then choose a new password for your account.</p>
+      <h1 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">Create a new password.</h1>
+      <p className="mt-3 text-muted">Use the reset link from your email, then choose a new password for your account.</p>
 
       <form className="mt-6 grid gap-3" onSubmit={handleUpdate}>
         <PasswordField id="new-password" label="New password" value={password} onChange={setPassword} autoComplete="new-password" placeholder="At least 8 characters" />
         <PasswordGuidance password={password} />
         <PasswordField id="new-password-confirm" label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} autoComplete="new-password" placeholder="Repeat your new password" />
-        <button disabled={loading || !ready} className="rounded-xl bg-gradient-to-r from-lab-teal to-lab-blue px-4 py-3 font-black text-lab-navy disabled:opacity-60">
+        <button disabled={loading || !ready} className="btn-primary">
           {loading ? "Updating..." : "Update Password"}
         </button>
       </form>
@@ -105,7 +105,7 @@ export function ResetPasswordForm() {
       ) : null}
 
       {!ready ? (
-        <Link href="/forgot-password" className="mt-5 inline-flex text-sm font-black text-lab-blue">
+        <Link href="/forgot-password" className="mt-5 inline-flex text-sm font-black text-primary">
           Request a new reset link
         </Link>
       ) : null}
