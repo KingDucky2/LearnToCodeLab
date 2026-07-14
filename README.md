@@ -22,7 +22,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
-# Optional server-only emergency maintenance fallback
+# Server-only maintenance precedence: database, force-on, or force-off
+MAINTENANCE_OVERRIDE=database
+
+# Legacy force-on switch
 MAINTENANCE_MODE=false
 MAINTENANCE_TITLE=
 MAINTENANCE_MESSAGE=
@@ -101,13 +104,62 @@ where id = (select id from auth.users where email = 'owner@example.com');
 
 Allowed roles are `learner`, `user`, `moderator`, `admin`, and `owner`. Only `admin` and `owner` can use maintenance controls. Authorization is checked server-side and enforced again by RLS.
 
-Emergency mode takes priority when `MAINTENANCE_MODE=true` in Vercel. It works when Supabase is unavailable, disables bypass, and may use the optional title, message, and ISO timestamp variables. Vercel environment changes require a redeployment.
+`MAINTENANCE_OVERRIDE` has explicit precedence. `force-on` keeps public routes in maintenance, `force-off` keeps the application online regardless of the database switch, and `database` uses `public.site_settings`. The legacy `MAINTENANCE_MODE=true` value acts as `force-on` only when the new override is unset. Environment changes require a Vercel redeployment.
 
 Recovery order:
 
-1. Open `/admin/maintenance` and disable the Supabase switch.
-2. If emergency mode is active, set `MAINTENANCE_MODE=false` in Vercel and redeploy.
+1. Open `/staff/sign-in?next=/admin/maintenance`, sign in as an owner or admin, and disable the Supabase switch.
+2. If emergency mode is active, set `MAINTENANCE_OVERRIDE=force-off` in Vercel and redeploy.
 3. If the Next.js deployment is unavailable, upload `maintenance.html` as `index.html` to a static host.
+
+## Recovering from maintenance-mode lockout
+
+The normal recovery URL is:
+
+```text
+https://learntocodelab.com/staff/sign-in?next=/admin/maintenance
+```
+
+This route remains available even when public login is disabled. After authentication, the middleware reads `public.profiles.role` using the verified Supabase session. Only `admin` and `owner` roles can enter `/admin` or `/admin/maintenance`; other accounts return to `/maintenance`.
+
+If the website login UI is unavailable, open the Supabase SQL Editor and disable the database switch directly:
+
+```sql
+update public.site_settings
+set maintenance_enabled = false,
+    updated_at = now()
+where id = 'global';
+```
+
+Verify the account role without changing it:
+
+```sql
+select u.email, p.id, p.role
+from auth.users as u
+join public.profiles as p on p.id = u.id
+where lower(u.email) = lower('owner@example.com');
+```
+
+If necessary, restore the owner role after replacing the example email:
+
+```sql
+update public.profiles
+set role = 'owner',
+    updated_at = now()
+where id = (
+  select id from auth.users
+  where lower(email) = lower('owner@example.com')
+);
+```
+
+Environment recovery precedence is unambiguous:
+
+1. `MAINTENANCE_OVERRIDE=force-off` forces the application online, even if the Supabase switch or legacy variable says otherwise.
+2. `MAINTENANCE_OVERRIDE=force-on` forces public maintenance mode.
+3. `MAINTENANCE_OVERRIDE=database` uses `public.site_settings.maintenance_enabled` and ignores the legacy variable.
+4. When `MAINTENANCE_OVERRIDE` is unset, legacy `MAINTENANCE_MODE=true` forces maintenance; every other legacy value uses the database.
+
+Vercel environment changes require a redeployment. After database recovery, return `MAINTENANCE_OVERRIDE` to `database` so the admin maintenance controls become authoritative again.
 
 ## Auth Routes
 
@@ -117,6 +169,8 @@ Recovery order:
 /forgot-password
 /reset-password
 /auth/callback
+/auth/continue
+/staff/sign-in
 /dashboard
 /profile
 /settings
@@ -180,5 +234,5 @@ Maintenance page:
 - Confirm preview renders saved content without enabling maintenance.
 - Confirm hidden tasks and updates remain private.
 - Confirm progress, countdown, dark theme, mobile layout, reduced motion, and automatic reopening.
-- Confirm `MAINTENANCE_MODE=true` overrides Supabase and works if Supabase is unavailable.
+- Confirm `MAINTENANCE_OVERRIDE=force-on` works if Supabase is unavailable and `force-off` restores access after redeployment.
 - Confirm disabling maintenance returns visitors to their safe original route.

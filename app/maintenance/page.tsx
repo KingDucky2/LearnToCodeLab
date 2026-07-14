@@ -11,13 +11,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-export default async function MaintenancePage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
-  const [{ returnTo }, state, session] = await Promise.all([searchParams, getPublicMaintenanceState(), getCurrentUserRole()]);
+export default async function MaintenancePage({ searchParams }: { searchParams: Promise<{ returnTo?: string; notice?: string }> }) {
+  const [{ returnTo, notice }, state, session] = await Promise.all([searchParams, getPublicMaintenanceState(), getCurrentUserRole()]);
   let profile: { displayName: string | null; preferredLanguage: string | null } | null = null;
   if (session.user && session.supabase && state.settings.show_personalized_message) {
     const db = session.supabase as any;
     const { data } = await db.from("profiles").select("display_name, preferred_language").eq("id", session.user.id).maybeSingle();
     profile = data ? { displayName: data.display_name, preferredLanguage: data.preferred_language } : null;
   }
-  return <MaintenanceExperience state={state} returnTo={safeMaintenanceReturnPath(returnTo)} profile={profile} />;
+  return <MaintenanceExperience state={state} returnTo={safeMaintenanceReturnPath(returnTo)} profile={profile} notice={notice === "signed-in-access-restricted" ? notice : undefined} />;
 }

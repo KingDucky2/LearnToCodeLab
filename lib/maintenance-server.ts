@@ -1,16 +1,20 @@
 import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { defaultMaintenanceSettings, isAdminRole, isEmergencyMaintenanceValue, type MaintenanceState } from "@/lib/maintenance";
+import { defaultMaintenanceSettings, isAdminRole, resolveMaintenanceOverride, type MaintenanceOverride, type MaintenanceState } from "@/lib/maintenance";
 
 const publicStateCache = new Map<string, { expiresAt: number; state: MaintenanceState }>();
-const publicStateCacheTtlMs = 10_000;
+export const maintenanceStateCacheTtlMs = 1_000;
 
 export function invalidateMaintenanceStateCache() {
   publicStateCache.clear();
 }
 
+export function getMaintenanceOverride(): MaintenanceOverride {
+  return resolveMaintenanceOverride(process.env.MAINTENANCE_OVERRIDE, process.env.MAINTENANCE_MODE);
+}
+
 export function isEmergencyMaintenanceEnabled() {
-  return isEmergencyMaintenanceValue(process.env.MAINTENANCE_MODE);
+  return getMaintenanceOverride() === "force-on";
 }
 
 export function getEmergencyMaintenanceState(): MaintenanceState {
@@ -34,8 +38,10 @@ export function getEmergencyMaintenanceState(): MaintenanceState {
   };
 }
 
-export async function getPublicMaintenanceState(): Promise<MaintenanceState> {
-  if (isEmergencyMaintenanceEnabled()) return getEmergencyMaintenanceState();
+export async function getPublicMaintenanceState({ forceRefresh = false }: { forceRefresh?: boolean } = {}): Promise<MaintenanceState> {
+  const override = getMaintenanceOverride();
+  if (override === "force-on") return getEmergencyMaintenanceState();
+  if (override === "force-off") return { settings: { ...defaultMaintenanceSettings, maintenance_enabled: false }, tasks: [], updates: [], emergency: false, available: true };
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -43,7 +49,7 @@ export async function getPublicMaintenanceState(): Promise<MaintenanceState> {
 
   const cacheKey = `${url}:${key.slice(-12)}`;
   const cached = publicStateCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.state;
+  if (!forceRefresh && cached && cached.expiresAt > Date.now()) return cached.state;
 
   try {
     const supabase = createPublicClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -57,7 +63,7 @@ export async function getPublicMaintenanceState(): Promise<MaintenanceState> {
       emergency: false,
       available: true
     };
-    publicStateCache.set(cacheKey, { expiresAt: Date.now() + publicStateCacheTtlMs, state });
+    publicStateCache.set(cacheKey, { expiresAt: Date.now() + maintenanceStateCacheTtlMs, state });
     return state;
   } catch {
     return { settings: defaultMaintenanceSettings, tasks: [], updates: [], emergency: false, available: false };

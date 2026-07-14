@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { clampProgress, isMaintenanceTaskStatus, type MaintenanceSettings, type MaintenanceTask, type MaintenanceUpdate } from "@/lib/maintenance";
 import { invalidateMaintenanceStateCache, requireAdmin } from "@/lib/maintenance-server";
 
@@ -63,5 +64,8 @@ export async function PUT(request: Request) {
   if (saveError) return NextResponse.json({ message: "Maintenance controls could not be saved." }, { status: 500 });
 
   invalidateMaintenanceStateCache();
+  revalidatePath("/", "layout");
+  revalidatePath("/maintenance");
+  revalidatePath("/admin/maintenance");
   return NextResponse.json({ message: "Maintenance controls saved." }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -28,6 +28,11 @@ export function sanitizeReturnPath(value: string | null | undefined, fallback = 
   }
 }
 
+export function sanitizeAdminReturnPath(value: string | null | undefined, fallback = "/admin/maintenance") {
+  const safePath = sanitizeReturnPath(value, fallback);
+  return safePath === "/admin" || safePath.startsWith("/admin/") ? safePath : fallback;
+}
+
 export function getAuthErrorMessage(message: string | null | undefined) {
   const lower = (message ?? "").toLowerCase();
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Eye, Plus, Save, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AuthMessage } from "@/components/auth/AuthMessage";
 import { clampProgress, type MaintenanceSettings, type MaintenanceTask, type MaintenanceUpdate } from "@/lib/maintenance";
@@ -10,6 +11,7 @@ type Props = { initialSettings: MaintenanceSettings; initialTasks: MaintenanceTa
 const adminDateFormatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 
 export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpdates, lastUpdatedBy }: Props) {
+  const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [tasks, setTasks] = useState(initialTasks);
   const [updates, setUpdates] = useState(initialUpdates);
@@ -47,6 +49,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
       setSettings(nextSettings);
       setSavedSnapshot(JSON.stringify({ initialSettings: nextSettings, initialTasks: tasks, initialUpdates: updates }));
       setMessage({ type: "success", text: body.message ?? "Maintenance controls saved." });
+      router.refresh();
     } finally { setLoading(false); setConfirmEnable(false); }
   }
 
@@ -76,7 +79,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
       </section>
 
       <section className="grid gap-4 border-b border-border pb-7"><div><h2 className="text-2xl font-black text-foreground">Access and display</h2><p className="text-muted">These switches determine who can enter and what visitors see.</p></div><div className="grid gap-3 md:grid-cols-2">{([
-        ["show_countdown", "Show live countdown"], ["show_progress", "Show overall progress"], ["allow_login_during_maintenance", "Keep login available"], ["allow_authenticated_users", "Allow signed-in learners"], ["allow_admin_bypass", "Allow admin bypass"], ["show_personalized_message", "Show personalized greeting"], ["show_saved_progress_message", "Show saved-progress reassurance"], ["auto_refresh_enabled", "Automatically reopen the site"]
+        ["show_countdown", "Show live countdown"], ["show_progress", "Show overall progress"], ["allow_login_during_maintenance", "Keep learner login available"], ["allow_authenticated_users", "Allow signed-in learners"], ["allow_admin_bypass", "Allow admins across the public site"], ["show_personalized_message", "Show personalized greeting"], ["show_saved_progress_message", "Show saved-progress reassurance"], ["auto_refresh_enabled", "Automatically reopen the site"]
       ] as const).map(([key, label]) => <Toggle key={key} label={label} checked={settings[key]} onChange={(checked) => updateSetting(key, checked)} />)}</div><div className="grid gap-4 md:grid-cols-2"><Field label="Support message"><input value={settings.support_message ?? ""} onChange={(e) => updateSetting("support_message", e.target.value || null)} /></Field><Field label="Contact email"><input type="email" value={settings.contact_email ?? ""} onChange={(e) => updateSetting("contact_email", e.target.value || null)} /></Field></div></section>
 
       <section className="grid gap-4 border-b border-border pb-7"><div className="flex items-center justify-between gap-3"><div><h2 className="text-2xl font-black text-foreground">Maintenance tasks</h2><p className="text-muted">Order and publish the work visitors can follow.</p></div><button onClick={() => setTasks((items) => [...items, { id: crypto.randomUUID(), title: "New task", description: "", status: "waiting", progress_percent: 0, display_order: items.length * 10, visible: true }])} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 font-black text-foreground"><Plus className="h-4 w-4" />Add task</button></div><div className="grid gap-3">{tasks.map((task, index) => <div key={task.id} className="grid gap-3 rounded-lg border border-border p-4"><div className="grid gap-3 md:grid-cols-[1fr_180px]"><input aria-label="Task title" value={task.title} onChange={(e) => updateTask(task.id, { title: e.target.value })} /><select aria-label="Task status" value={task.status} onChange={(e) => updateTask(task.id, { status: e.target.value as MaintenanceTask["status"] })}><option value="waiting">Waiting</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="delayed">Delayed</option></select></div><textarea aria-label="Task description" rows={2} value={task.description ?? ""} onChange={(e) => updateTask(task.id, { description: e.target.value })} /><div className="flex flex-wrap items-center gap-3"><input aria-label="Task progress" className="min-w-40 flex-1" type="range" min="0" max="100" value={task.progress_percent ?? 0} onChange={(e) => updateTask(task.id, { progress_percent: clampProgress(Number(e.target.value)) })} /><span className="text-sm font-black">{task.progress_percent ?? 0}%</span><Toggle compact label="Visible" checked={task.visible} onChange={(visible) => updateTask(task.id, { visible })} /><IconButton label="Move task up" disabled={index === 0} onClick={() => moveTask(index, -1)}><ArrowUp /></IconButton><IconButton label="Move task down" disabled={index === tasks.length - 1} onClick={() => moveTask(index, 1)}><ArrowDown /></IconButton><IconButton label="Delete task" onClick={() => setTasks((items) => items.filter((item) => item.id !== task.id))}><Trash2 /></IconButton></div></div>)}</div></section>
@@ -85,7 +88,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
 
       <div className="sticky bottom-3 flex justify-end"><button onClick={() => void save()} disabled={loading || !dirty} className="btn-primary shadow-lab"><Save className="h-4 w-4" />{loading ? "Saving..." : "Save changes"}</button></div>
 
-      {confirmEnable ? <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="enable-title" aria-describedby="enable-description"><div className="w-full max-w-lg rounded-lg bg-surface p-6 shadow-2xl"><h2 id="enable-title" className="text-2xl font-black text-foreground">Enable maintenance mode?</h2><p id="enable-description" className="mt-3 text-muted">Public visitors will be redirected. Admin access remains available when bypass is enabled, and login availability follows the current access setting.</p><div className="mt-6 flex justify-end gap-3"><button onClick={() => { setConfirmEnable(false); updateSetting("maintenance_enabled", false); }} className="btn-outline">Cancel</button><button ref={confirmButtonRef} onClick={() => void save(settings)} disabled={loading} className="rounded-lg bg-amber-700 px-4 py-3 font-black text-white">{loading ? "Enabling..." : "Enable maintenance"}</button></div></div></div> : null}
+      {confirmEnable ? <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="enable-title" aria-describedby="enable-description"><div className="w-full max-w-lg rounded-lg bg-surface p-6 shadow-2xl"><h2 id="enable-title" className="text-2xl font-black text-foreground">Enable maintenance mode?</h2><p id="enable-description" className="mt-3 text-muted">Public visitors will be redirected. Staff sign-in and verified admin controls always remain available; learner login follows the current access setting.</p><div className="mt-6 flex justify-end gap-3"><button onClick={() => { setConfirmEnable(false); updateSetting("maintenance_enabled", false); }} className="btn-outline">Cancel</button><button ref={confirmButtonRef} onClick={() => void save(settings)} disabled={loading} className="rounded-lg bg-amber-700 px-4 py-3 font-black text-white">{loading ? "Enabling..." : "Enable maintenance"}</button></div></div></div> : null}
     </div>
   );
 }

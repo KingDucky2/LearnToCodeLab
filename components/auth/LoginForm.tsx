@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { getAuthErrorMessage, isValidEmail, sanitizeReturnPath } from "@/lib/auth-utils";
+import { getAuthErrorMessage, isValidEmail, sanitizeAdminReturnPath, sanitizeReturnPath } from "@/lib/auth-utils";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/browser";
 import { AuthMessage } from "@/components/auth/AuthMessage";
 import { PasswordField } from "@/components/auth/PasswordField";
 
-export function LoginForm() {
-  const router = useRouter();
+export function LoginForm({ mode = "learner" }: { mode?: "learner" | "staff" }) {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +17,8 @@ export function LoginForm() {
     return error ? { type: "error", text: getAuthErrorMessage(error) } : null;
   });
   const [loading, setLoading] = useState(false);
-  const next = sanitizeReturnPath(searchParams.get("next"));
+  const next = mode === "staff" ? sanitizeAdminReturnPath(searchParams.get("next")) : sanitizeReturnPath(searchParams.get("next"));
+  const isStaff = mode === "staff";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,8 +45,7 @@ export function LoginForm() {
         setMessage({ type: "error", text: getAuthErrorMessage(error.message) });
         return;
       }
-      router.push(next);
-      router.refresh();
+      window.location.assign(`/auth/continue?next=${encodeURIComponent(next)}`);
     } finally {
       setLoading(false);
     }
@@ -64,7 +63,7 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}${isStaff ? "&recovery=staff" : ""}`,
         scopes: "openid email profile"
       }
     });
@@ -78,9 +77,9 @@ export function LoginForm() {
   return (
     <div className="glass rounded-lg p-6">
       <div className="mb-6">
-        <p className="text-xs font-black uppercase text-amber-700">Sign in</p>
-        <h1 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">Continue learning.</h1>
-        <p className="mt-3 text-muted">Sign in with email or Google to reach your dashboard and saved progress.</p>
+        <p className="text-xs font-black uppercase text-amber-700">{isStaff ? "Staff access" : "Sign in"}</p>
+        <h1 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">{isStaff ? "Staff sign in." : "Continue learning."}</h1>
+        <p className="mt-3 text-muted">{isStaff ? "Sign in with an authorized staff account. Access is verified securely after authentication." : "Sign in with email or Google to reach your dashboard and saved progress."}</p>
       </div>
 
       <form className="grid gap-3" onSubmit={handleSubmit} noValidate>
@@ -102,9 +101,11 @@ export function LoginForm() {
         <Link className="font-black text-primary" href="/forgot-password">
           Forgot password?
         </Link>
-        <Link className="font-black text-primary" href={`/signup?next=${encodeURIComponent(next)}`}>
-          Create Account
-        </Link>
+        {isStaff ? <Link className="font-black text-primary" href="/maintenance">Back to maintenance</Link> : (
+          <Link className="font-black text-primary" href={`/signup?next=${encodeURIComponent(next)}`}>
+            Create Account
+          </Link>
+        )}
       </div>
 
       {message ? (

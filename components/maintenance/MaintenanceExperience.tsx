@@ -11,6 +11,7 @@ type Props = {
   returnTo: string;
   profile: { displayName: string | null; preferredLanguage: string | null } | null;
   preview?: boolean;
+  notice?: "signed-in-access-restricted";
 };
 
 const taskMeta = {
@@ -45,7 +46,7 @@ function useCountdown(target: string | null, enabled: boolean) {
   return remaining;
 }
 
-export function MaintenanceExperience({ state, returnTo, profile, preview = false }: Props) {
+export function MaintenanceExperience({ state, returnTo, profile, preview = false, notice }: Props) {
   const { settings, tasks, updates } = state;
   const remaining = useCountdown(settings.estimated_return_at, settings.show_countdown);
   const safeReturn = useMemo(() => safeMaintenanceReturnPath(returnTo), [returnTo]);
@@ -102,6 +103,15 @@ export function MaintenanceExperience({ state, returnTo, profile, preview = fals
             </div>
           ) : null}
 
+          {notice ? (
+            <div className="mt-5 flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-950" role="status">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <p>This signed-in account does not have access while maintenance is active. Learner progress remains safely stored.</p>
+            </div>
+          ) : null}
+
+          <MaintenanceAccessActions allowLearnerLogin={settings.allow_login_during_maintenance && !state.emergency} returnTo={safeReturn} />
+
           {settings.show_progress ? <MaintenanceProgress progress={settings.progress_percent} /> : null}
           {settings.show_countdown && settings.estimated_return_at ? <MaintenanceCountdown remaining={remaining} /> : null}
           {tasks.length ? <MaintenanceTaskList tasks={tasks} /> : null}
@@ -124,6 +134,19 @@ export function MaintenanceExperience({ state, returnTo, profile, preview = fals
         </section>
       </div>
     </main>
+  );
+}
+
+export function MaintenanceAccessActions({ allowLearnerLogin, returnTo }: { allowLearnerLogin: boolean; returnTo: string }) {
+  return (
+    <section className="mt-6 rounded-lg border border-border bg-surface-interactive p-4" aria-labelledby="maintenance-access-title">
+      <h2 id="maintenance-access-title" className="font-black text-foreground">Need to sign in?</h2>
+      <p className="mt-1 text-sm text-muted">Learner progress remains safely stored while the lab is offline.</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link href="/staff/sign-in?next=%2Fadmin%2Fmaintenance" className="btn-outline">Staff sign in</Link>
+        {allowLearnerLogin ? <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className="btn-secondary">Learner sign in</Link> : null}
+      </div>
+    </section>
   );
 }
 

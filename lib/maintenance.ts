@@ -49,6 +49,9 @@ export type MaintenanceState = {
   available: boolean;
 };
 
+export type MaintenanceAccessDecision = "allow" | "maintenance" | "staff-sign-in";
+export type MaintenanceOverride = "database" | "force-on" | "force-off";
+
 export const defaultMaintenanceSettings: MaintenanceSettings = {
   maintenance_enabled: false,
   maintenance_title: "The lab is getting upgraded.",
@@ -73,11 +76,15 @@ export const defaultMaintenanceSettings: MaintenanceSettings = {
 
 export const maintenanceBypassPrefixes = [
   "/maintenance",
-  "/admin",
+  "/staff/sign-in",
   "/auth/callback",
+  "/auth/continue",
   "/auth/sign-out",
+  "/auth/forgot-password",
+  "/auth/reset-password",
   "/forgot-password",
   "/reset-password",
+  "/api/auth",
   "/api/admin/maintenance",
   "/api/maintenance",
   "/_next",
@@ -96,6 +103,10 @@ export function isLoginPath(pathname: string) {
   return loginPrefixes.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+export function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 export function isAdminRole(role: string | null | undefined) {
   return role === "admin" || role === "owner";
 }
@@ -106,6 +117,12 @@ export function isOwnerRole(role: string | null | undefined) {
 
 export function isEmergencyMaintenanceValue(value: string | null | undefined) {
   return value?.trim().toLowerCase() === "true";
+}
+
+export function resolveMaintenanceOverride(override: string | null | undefined, legacyMode: string | null | undefined): MaintenanceOverride {
+  const normalized = override?.trim().toLowerCase();
+  if (normalized === "force-on" || normalized === "force-off" || normalized === "database") return normalized;
+  return isEmergencyMaintenanceValue(legacyMode) ? "force-on" : "database";
 }
 
 export function clampProgress(value: number) {
@@ -122,12 +139,22 @@ export function getCountdownRemaining(target: string | null, now = Date.now()) {
   return Number.isFinite(targetTime) ? Math.max(0, targetTime - now) : null;
 }
 
+export function getMaintenanceAccessDecision(input: { pathname: string; enabled: boolean; emergency: boolean; role?: string | null; authenticated: boolean; settings: MaintenanceSettings }): MaintenanceAccessDecision {
+  if (!input.enabled || isMaintenanceBypassPath(input.pathname)) return "allow";
+
+  if (isAdminPath(input.pathname)) {
+    if (!input.authenticated) return "staff-sign-in";
+    return isAdminRole(input.role) ? "allow" : "maintenance";
+  }
+
+  if (isLoginPath(input.pathname) && input.settings.allow_login_during_maintenance && !input.emergency) return "allow";
+  if (!input.emergency && input.settings.allow_admin_bypass && isAdminRole(input.role)) return "allow";
+  if (!input.emergency && input.settings.allow_authenticated_users && input.authenticated) return "allow";
+  return "maintenance";
+}
+
 export function shouldRedirectForMaintenance(input: { pathname: string; enabled: boolean; emergency: boolean; role?: string | null; authenticated: boolean; settings: MaintenanceSettings }) {
-  if (!input.enabled || isMaintenanceBypassPath(input.pathname)) return false;
-  if (isLoginPath(input.pathname) && input.settings.allow_login_during_maintenance && !input.emergency) return false;
-  if (!input.emergency && input.settings.allow_admin_bypass && isAdminRole(input.role)) return false;
-  if (!input.emergency && input.settings.allow_authenticated_users && input.authenticated) return false;
-  return true;
+  return getMaintenanceAccessDecision(input) === "maintenance";
 }
 
 export function safeMaintenanceReturnPath(value: string | null | undefined) {

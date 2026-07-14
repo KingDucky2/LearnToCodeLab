@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { isProtectedPath, isValidEmail, sanitizeReturnPath, validateUsername } from "../lib/auth-utils.ts";
-import { clampProgress, defaultMaintenanceSettings, getCountdownRemaining, isAdminRole, isEmergencyMaintenanceValue, isMaintenanceBypassPath, isMaintenanceTaskStatus, isOwnerRole, safeMaintenanceReturnPath, shouldRedirectForMaintenance } from "../lib/maintenance.ts";
+import { isProtectedPath, isValidEmail, sanitizeAdminReturnPath, sanitizeReturnPath, validateUsername } from "../lib/auth-utils.ts";
+import { clampProgress, defaultMaintenanceSettings, getCountdownRemaining, getMaintenanceAccessDecision, isAdminRole, isEmergencyMaintenanceValue, isMaintenanceBypassPath, isMaintenanceTaskStatus, isOwnerRole, resolveMaintenanceOverride, safeMaintenanceReturnPath, shouldRedirectForMaintenance } from "../lib/maintenance.ts";
 
 test("sanitizeReturnPath accepts same-site relative paths", () => {
   assert.equal(sanitizeReturnPath("/dashboard?tab=next"), "/dashboard?tab=next");
@@ -13,6 +13,13 @@ test("sanitizeReturnPath rejects external and protocol-relative targets", () => 
   assert.equal(sanitizeReturnPath("https://evil.example/login"), "/dashboard");
   assert.equal(sanitizeReturnPath("//evil.example/login"), "/dashboard");
   assert.equal(sanitizeReturnPath("\\evil"), "/dashboard");
+});
+
+test("staff recovery accepts only safe admin return paths", () => {
+  assert.equal(sanitizeAdminReturnPath("/admin"), "/admin");
+  assert.equal(sanitizeAdminReturnPath("/admin/maintenance?tab=status"), "/admin/maintenance?tab=status");
+  assert.equal(sanitizeAdminReturnPath("/dashboard"), "/admin/maintenance");
+  assert.equal(sanitizeAdminReturnPath("https://evil.example/admin"), "/admin/maintenance");
 });
 
 test("email validation accepts normal addresses and rejects malformed values", () => {
@@ -36,9 +43,17 @@ test("private account and onboarding routes are protected", () => {
 
 test("maintenance routing excludes critical routes and prevents loops", () => {
   assert.equal(isMaintenanceBypassPath("/maintenance"), true);
+  assert.equal(isMaintenanceBypassPath("/staff/sign-in"), true);
   assert.equal(isMaintenanceBypassPath("/auth/callback"), true);
+  assert.equal(isMaintenanceBypassPath("/auth/continue"), true);
+  assert.equal(isMaintenanceBypassPath("/auth/sign-out"), true);
+  assert.equal(isMaintenanceBypassPath("/forgot-password"), true);
+  assert.equal(isMaintenanceBypassPath("/reset-password"), true);
   assert.equal(isMaintenanceBypassPath("/api/maintenance/status"), true);
   assert.equal(isMaintenanceBypassPath("/learntocodelab-logo.png"), true);
+  assert.equal(isMaintenanceBypassPath("/_next/static/chunks/app.js"), true);
+  assert.equal(isMaintenanceBypassPath("/favicon-32x32.png"), true);
+  assert.equal(isMaintenanceBypassPath("/admin"), false);
   assert.equal(isMaintenanceBypassPath("/api/account/delete"), false);
   assert.equal(shouldRedirectForMaintenance({ pathname: "/learn", enabled: false, emergency: false, authenticated: false, settings: defaultMaintenanceSettings }), false);
   assert.equal(shouldRedirectForMaintenance({ pathname: "/learn", enabled: true, emergency: false, authenticated: false, settings: defaultMaintenanceSettings }), true);
@@ -51,11 +66,62 @@ test("maintenance access respects authenticated and admin bypass settings", () =
   assert.equal(shouldRedirectForMaintenance({ pathname: "/learn", enabled: true, emergency: false, authenticated: true, role: "owner", settings: defaultMaintenanceSettings }), false);
   assert.equal(shouldRedirectForMaintenance({ pathname: "/learn", enabled: true, emergency: true, authenticated: true, role: "owner", settings: defaultMaintenanceSettings }), true);
   assert.equal(shouldRedirectForMaintenance({ pathname: "/login", enabled: true, emergency: false, authenticated: false, settings: defaultMaintenanceSettings }), false);
+  assert.equal(shouldRedirectForMaintenance({ pathname: "/signup", enabled: true, emergency: false, authenticated: false, settings: defaultMaintenanceSettings }), false);
   assert.equal(shouldRedirectForMaintenance({ pathname: "/login", enabled: true, emergency: false, authenticated: false, settings: { ...defaultMaintenanceSettings, allow_login_during_maintenance: false } }), true);
+  assert.equal(shouldRedirectForMaintenance({ pathname: "/signup", enabled: true, emergency: false, authenticated: false, settings: { ...defaultMaintenanceSettings, allow_login_during_maintenance: false } }), true);
+  assert.equal(getMaintenanceAccessDecision({ pathname: "/staff/sign-in", enabled: true, emergency: true, authenticated: false, settings: defaultMaintenanceSettings }), "allow");
+  assert.equal(getMaintenanceAccessDecision({ pathname: "/admin/maintenance", enabled: true, emergency: false, authenticated: false, settings: defaultMaintenanceSettings }), "staff-sign-in");
+  assert.equal(getMaintenanceAccessDecision({ pathname: "/admin/maintenance", enabled: true, emergency: true, authenticated: true, role: "owner", settings: defaultMaintenanceSettings }), "allow");
+  assert.equal(getMaintenanceAccessDecision({ pathname: "/admin", enabled: true, emergency: false, authenticated: true, role: "learner", settings: defaultMaintenanceSettings }), "maintenance");
+  assert.equal(getMaintenanceAccessDecision({ pathname: "/dashboard", enabled: true, emergency: false, authenticated: true, role: "learner", settings: { ...defaultMaintenanceSettings, allow_authenticated_users: false } }), "maintenance");
   assert.equal(isAdminRole("admin"), true);
   assert.equal(isAdminRole("owner"), true);
   assert.equal(isAdminRole("moderator"), false);
   assert.equal(isOwnerRole("owner"), true);
+});
+
+test("maintenance override precedence supports emergency recovery", () => {
+  assert.equal(resolveMaintenanceOverride("force-off", "true"), "force-off");
+  assert.equal(resolveMaintenanceOverride("force-on", "false"), "force-on");
+  assert.equal(resolveMaintenanceOverride("database", "true"), "database");
+  assert.equal(resolveMaintenanceOverride(undefined, "true"), "force-on");
+  assert.equal(resolveMaintenanceOverride(undefined, "false"), "database");
+  assert.equal(resolveMaintenanceOverride("invalid", "false"), "database");
+});
+
+test("maintenance save refreshes server and public state promptly", () => {
+  const server = readFileSync(new URL("../lib/maintenance-server.ts", import.meta.url), "utf8");
+  const api = readFileSync(new URL("../app/api/admin/maintenance/route.ts", import.meta.url), "utf8");
+  const statusApi = readFileSync(new URL("../app/api/maintenance/status/route.ts", import.meta.url), "utf8");
+  assert.match(server, /maintenanceStateCacheTtlMs = 1_000/);
+  assert.match(server, /forceRefresh = false/);
+  assert.match(api, /invalidateMaintenanceStateCache\(\)/);
+  assert.match(api, /revalidatePath\("\/", "layout"\)/);
+  assert.match(statusApi, /forceRefresh: true/);
+});
+
+test("maintenance page always exposes neutral staff recovery", () => {
+  const experience = readFileSync(new URL("../components/maintenance/MaintenanceExperience.tsx", import.meta.url), "utf8");
+  const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
+  assert.match(experience, /Staff sign in/);
+  assert.match(experience, /\/staff\/sign-in\?next=%2Fadmin%2Fmaintenance/);
+  assert.match(experience, /settings\.allow_login_during_maintenance/);
+  assert.match(middleware, /decision === "staff-sign-in"/);
+  assert.match(middleware, /signed-in-access-restricted/);
+});
+
+test("post-login routing verifies roles server-side during maintenance", () => {
+  const continuation = readFileSync(new URL("../app/auth/continue/route.ts", import.meta.url), "utf8");
+  const callback = readFileSync(new URL("../app/auth/callback/route.ts", import.meta.url), "utf8");
+  const login = readFileSync(new URL("../components/auth/LoginForm.tsx", import.meta.url), "utf8");
+  assert.match(continuation, /select\("role"\)/);
+  assert.match(continuation, /isAdminRole\(profile\?\.role\)/);
+  assert.match(continuation, /"\/admin\/maintenance"/);
+  assert.match(continuation, /allow_authenticated_users/);
+  assert.match(continuation, /signed-in-access-restricted/);
+  assert.match(callback, /new URL\("\/auth\/continue"/);
+  assert.match(callback, /recoveryLogin \? "\/staff\/sign-in" : "\/login"/);
+  assert.match(login, /window\.location\.assign\(`\/auth\/continue\?next=/);
 });
 
 test("maintenance input validation is bounded and safe", () => {
