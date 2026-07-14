@@ -97,6 +97,17 @@ textarea {
   color: #f7fbff;
 }
 
+.onboarding-page {
+  min-height: calc(100vh - 88px);
+  background-color: #06172f;
+  background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
 body:has(main[data-maintenance-page]) > header,
 body:has(main[data-maintenance-page]) > footer {
   display: none;
