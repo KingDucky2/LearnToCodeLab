@@ -85,6 +85,7 @@ test("maintenance migration enforces RLS, role checks, and atomic admin saves", 
 test("onboarding keeps accessible selected states and responsive navigation", () => {
   const onboarding = readFileSync(new URL("../components/OnboardingForm.tsx", import.meta.url), "utf8");
   const navigation = readFileSync(new URL("../components/AppNavClient.tsx", import.meta.url), "utf8");
+  const brandLogo = readFileSync(new URL("../components/BrandLogo.tsx", import.meta.url), "utf8");
   const practice = readFileSync(new URL("../components/PracticeEngine.tsx", import.meta.url), "utf8");
   assert.match(onboarding, /role=\{multi \? "group" : "radiogroup"\}/);
   assert.match(onboarding, /aria-checked=\{isSelected\}/);
@@ -95,8 +96,12 @@ test("onboarding keeps accessible selected states and responsive navigation", ()
   assert.match(navigation, /aria-controls="mobile-navigation"/);
   assert.match(navigation, /aria-expanded=\{menuOpen\}/);
   assert.match(navigation, /lg:hidden/);
-  assert.match(navigation, /learntocodelab-logo-light\.png/);
-  assert.match(navigation, /learntocodelab-logo-dark\.png/);
+  assert.match(navigation, /<BrandLogo \/>/);
+  assert.doesNotMatch(navigation, />\s*L\s*</);
+  assert.match(brandLogo, /learntocodelab-logo-light\.png/);
+  assert.match(brandLogo, /learntocodelab-logo-dark\.png/);
+  assert.match(brandLogo, /alt="LearnToCodeLab logo"/);
+  assert.match(brandLogo, /onError=\{hideFailedLogo\}/);
   assert.match(navigation, /<details/);
   assert.match(practice, /role="radiogroup"/);
   assert.match(practice, /aria-checked=\{selected === choice\}/);

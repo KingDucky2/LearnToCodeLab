@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, UserRound, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const publicNavItems = [
   { href: "/learn", label: "Learn" },
@@ -38,10 +38,7 @@ export function AppNavClient({ user }: { user: NavUser }) {
     <header className="sticky top-2 z-40 mx-auto mt-2 w-[min(1180px,calc(100%_-_16px))] rounded-lg border border-border bg-surface/95 px-3 shadow-surface backdrop-blur sm:top-3 sm:mt-3 sm:w-[min(1180px,calc(100%_-_24px))]">
       <div className="flex h-16 items-center justify-between gap-3">
         <Link href="/" aria-label="LearnToCode Lab home" className="flex min-w-0 items-center gap-3 rounded-lg font-black text-foreground focus-visible:outline-none">
-          <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-border bg-surface">
-            <Image src="/learntocodelab-logo-light.png" alt="" fill sizes="44px" className="brand-logo-light object-cover" priority />
-            <Image src="/learntocodelab-logo-dark.png" alt="" fill sizes="44px" className="brand-logo-dark object-cover" priority />
-          </span>
+          <BrandLogo />
           <span className="truncate text-sm sm:text-base">LearnToCode Lab</span>
         </Link>
 
