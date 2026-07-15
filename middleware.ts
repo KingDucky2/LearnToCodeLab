@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isAuthPath, isProtectedPath, sanitizeReturnPath } from "@/lib/auth-utils";
 import { createMiddlewareClient, hasSupabaseEnv } from "@/lib/supabase/middleware";
 import { getPublicMaintenanceState } from "@/lib/maintenance-server";
-import { getMaintenanceAccessDecision, isAdminPath, safeMaintenanceReturnPath } from "@/lib/maintenance";
+import { getMaintenanceAccessDecision, isAdminPath, isMaintenanceBypassPath, safeMaintenanceReturnPath } from "@/lib/maintenance";
 
 function copyResponseCookies(source: NextResponse | undefined, target: NextResponse) {
   source?.cookies.getAll().forEach((cookie) => target.cookies.set(cookie));
@@ -33,6 +33,19 @@ function staffSignInRedirect(request: NextRequest, sourceResponse?: NextResponse
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  // Recovery, auth callbacks, status APIs, and static files never need a
+  // maintenance lookup. This also prevents a bypass route from paying for an
+  // RPC it will never use.
+  if (isMaintenanceBypassPath(pathname)) {
+    const isStaticBypass = pathname.startsWith("/_next") || pathname === "/robots.txt" || pathname === "/sitemap.xml" || pathname === "/favicon.ico" || /\.(?:css|js|map|svg|png|jpe?g|gif|webp|ico|woff2?|ttf)$/i.test(pathname);
+    const isPublicStatus = pathname === "/api/maintenance/status";
+    if (isStaticBypass || isPublicStatus || !hasSupabaseEnv()) return NextResponse.next();
+    // Keep Supabase's cookie refresh behavior for session-sensitive recovery
+    // and authentication routes even though maintenance data is unnecessary.
+    const { supabase, response } = createMiddlewareClient(request);
+    await supabase.auth.getUser();
+    return response();
+  }
   const maintenance = await getPublicMaintenanceState();
 
   if (!hasSupabaseEnv()) {
@@ -93,5 +106,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:css|js|map|svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)$).*)"]
 };

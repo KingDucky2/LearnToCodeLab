@@ -33,6 +33,16 @@ export function sanitizeAdminReturnPath(value: string | null | undefined, fallba
   return safePath === "/admin" || safePath.startsWith("/admin/") ? safePath : fallback;
 }
 
+export function canonicalRouteWithSearch(target: string, params: Record<string, string | string[] | undefined>) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) value.forEach((item) => search.append(key, item));
+    else if (value !== undefined) search.set(key, value);
+  }
+  const query = search.toString();
+  return query ? `${target}?${query}` : target;
+}
+
 export function getAuthErrorMessage(message: string | null | undefined) {
   const lower = (message ?? "").toLowerCase();
 
