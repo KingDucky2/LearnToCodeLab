@@ -53,20 +53,34 @@ export function MaintenanceExperience({ state, returnTo, profile, preview = fals
 
   useEffect(() => {
     if (preview || !settings.maintenance_enabled || !settings.auto_refresh_enabled) return;
+    let mounted = true;
+    let inFlight = false;
+    let controller: AbortController | null = null;
     const check = async () => {
-      if (document.visibilityState !== "visible") return;
+      if (!mounted || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      controller = new AbortController();
       try {
-        const response = await fetch("/api/maintenance/status", { cache: "no-store" });
+        const response = await fetch("/api/maintenance/status", { cache: "no-store", signal: controller.signal });
+        if (!response.ok || !mounted) return;
         const status = (await response.json()) as { enabled?: boolean };
-        if (status.enabled === false) window.location.assign(safeReturn);
-      } catch {
+        if (mounted && status.enabled === false) window.location.assign(safeReturn);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
         // Stay on the safe maintenance page if the status check is unavailable.
+      } finally {
+        if (mounted) inFlight = false;
       }
     };
     const interval = window.setInterval(check, Math.max(15, settings.auto_refresh_interval_seconds) * 1000);
     const onVisibility = () => { if (document.visibilityState === "visible") void check(); };
     document.addEventListener("visibilitychange", onVisibility);
-    return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", onVisibility); };
+    return () => {
+      mounted = false;
+      controller?.abort();
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [preview, safeReturn, settings.auto_refresh_enabled, settings.auto_refresh_interval_seconds, settings.maintenance_enabled]);
 
   if (!settings.maintenance_enabled && !preview) {

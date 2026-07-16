@@ -1,17 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, ExternalLink, LayoutDashboard, LogOut, Menu, ShieldCheck, Wrench, X } from "lucide-react";
+import { ChevronRight, ExternalLink, LayoutDashboard, LogOut, Menu, Wrench, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { AccountAvatar } from "@/components/AccountAvatar";
+import type { AccountIdentity } from "@/lib/identity";
 
-const navigation = [
+type AdminNavigationItem = { href: string; label: string; icon: typeof LayoutDashboard; exact: boolean };
+
+// Add implemented admin areas here. Future users and support sections should
+// supply real server-authorized routes before they are exposed in navigation.
+const navigation: AdminNavigationItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/maintenance", label: "Maintenance", icon: Wrench, exact: false }
 ];
 
-export function AdminShell({ children, user }: { children: ReactNode; user: { label: string; email: string; role: string } }) {
+export function AdminShell({ children, user }: { children: ReactNode; user: { identity: AccountIdentity; role: string } }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [pathname]);
@@ -39,8 +45,8 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { la
             <nav className="hidden items-center gap-2 text-sm text-subtle sm:flex" aria-label="Breadcrumb"><Link href="/admin" className="rounded hover:text-foreground">Admin</Link>{current && current.href !== "/admin" ? <><ChevronRight className="h-4 w-4" /><span className="truncate font-bold text-foreground">{current.label}</span></> : null}</nav>
           </div>
           <details className="group relative">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-bold [&::-webkit-details-marker]:hidden"><span className="grid h-7 w-7 place-items-center rounded-full bg-surface-secondary text-primary"><ShieldCheck className="h-4 w-4" /></span><span className="hidden max-w-40 truncate sm:block">{user.label}</span><span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black uppercase text-blue-900">{user.role}</span></summary>
-            <div className="absolute right-0 mt-2 w-72 rounded-lg border border-border bg-surface-elevated p-3 shadow-lab"><p className="truncate font-black text-foreground">{user.label}</p><p className="truncate text-xs text-subtle">{user.email}</p><form action="/auth/sign-out" method="post" className="mt-3 border-t border-border pt-2"><button className="btn-ghost w-full justify-start" type="submit"><LogOut className="h-4 w-4" />Sign out</button></form></div>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-bold [&::-webkit-details-marker]:hidden"><AccountAvatar identity={user.identity} size="sm" decorative /><span className="hidden max-w-40 truncate sm:block">{user.identity.label}</span><span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black uppercase text-blue-900">{user.role}</span></summary>
+            <div className="absolute right-0 mt-2 w-72 rounded-lg border border-border bg-surface-elevated p-3 shadow-lab"><p className="truncate font-black text-foreground">{user.identity.label}</p><p className="truncate text-xs text-subtle">{user.identity.email}</p><form action="/auth/sign-out" method="post" className="mt-3 border-t border-border pt-2"><button className="btn-ghost w-full justify-start" type="submit"><LogOut className="h-4 w-4" />Sign out</button></form></div>
           </details>
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>

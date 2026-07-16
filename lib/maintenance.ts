@@ -74,7 +74,7 @@ export const defaultMaintenanceSettings: MaintenanceSettings = {
   updated_at: null
 };
 
-export const maintenanceBypassPrefixes = [
+const maintenanceSessionBypassPrefixes = [
   "/maintenance",
   "/staff/sign-in",
   "/auth/callback",
@@ -86,17 +86,39 @@ export const maintenanceBypassPrefixes = [
   "/reset-password",
   "/api/auth",
   "/api/admin/maintenance",
-  "/api/maintenance",
-  "/_next",
-  "/robots.txt",
-  "/sitemap.xml",
-  "/favicon.ico"
+  "/api/maintenance"
 ];
+const staticAssetPattern = /\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|ttf|webmanifest|webp|woff2?)$/i;
+const staticExactPaths = new Set(["/favicon.ico", "/robots.txt", "/sitemap.xml"]);
 export const loginPrefixes = ["/login", "/signup", "/auth/sign-in", "/auth/create-account"];
 
+export type MaintenancePathClassification = {
+  bypassMaintenance: boolean;
+  refreshSession: boolean;
+  staticAsset: boolean;
+};
+
+function matchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
+ * Authoritative in-app route classification. The middleware matcher is only a
+ * coarse, statically analyzable fast path; every request that reaches
+ * middleware is classified here before maintenance or session work begins.
+ */
+export function classifyMaintenancePath(pathname: string): MaintenancePathClassification {
+  const staticAsset = pathname === "/_next" || pathname.startsWith("/_next/") || staticExactPaths.has(pathname) || staticAssetPattern.test(pathname);
+  if (staticAsset) return { bypassMaintenance: true, refreshSession: false, staticAsset: true };
+  if (pathname === "/api/maintenance/status") return { bypassMaintenance: true, refreshSession: false, staticAsset: false };
+  if (maintenanceSessionBypassPrefixes.some((prefix) => matchesPrefix(pathname, prefix))) {
+    return { bypassMaintenance: true, refreshSession: true, staticAsset: false };
+  }
+  return { bypassMaintenance: false, refreshSession: true, staticAsset: false };
+}
+
 export function isMaintenanceBypassPath(pathname: string) {
-  if (/\.(?:css|js|map|svg|png|jpe?g|gif|webp|ico|woff2?)$/i.test(pathname)) return true;
-  return maintenanceBypassPrefixes.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  return classifyMaintenancePath(pathname).bypassMaintenance;
 }
 
 export function isLoginPath(pathname: string) {

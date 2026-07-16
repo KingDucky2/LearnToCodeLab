@@ -119,7 +119,7 @@ test("maintenance page always exposes neutral staff recovery", () => {
 
 test("admin shell provides real navigation and mobile controls", () => {
   const shell = readFileSync(new URL("../components/admin/AdminShell.tsx", import.meta.url), "utf8");
-  const layout = readFileSync(new URL("../app/admin/layout.tsx", import.meta.url), "utf8");
+  const layout = readFileSync(new URL("../app/(admin)/admin/layout.tsx", import.meta.url), "utf8");
   assert.match(shell, /Overview/);
   assert.match(shell, /Maintenance/);
   assert.match(shell, /aria-label="Open admin navigation"/);
@@ -160,17 +160,17 @@ test("public maintenance UI handles expiration, local time, empty sections, and 
 
 test("middleware skips maintenance lookup for bypass and static routes", () => {
   const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
-  const bypassIndex = middleware.indexOf("if (isMaintenanceBypassPath(pathname))");
+  const bypassIndex = middleware.indexOf("if (pathClassification.bypassMaintenance)");
   const lookupIndex = middleware.indexOf("await getPublicMaintenanceState()");
   assert.ok(bypassIndex > -1 && bypassIndex < lookupIndex);
-  assert.match(middleware, /robots\.txt\|sitemap\.xml/);
+  assert.match(middleware, /classifyMaintenancePath\(pathname\)/);
   assert.match(middleware, /css\|js\|map/);
   assert.match(middleware, /woff\|woff2\|ttf/);
 });
 
 test("post-login routing verifies roles server-side during maintenance", () => {
-  const continuation = readFileSync(new URL("../app/auth/continue/route.ts", import.meta.url), "utf8");
-  const callback = readFileSync(new URL("../app/auth/callback/route.ts", import.meta.url), "utf8");
+  const continuation = readFileSync(new URL("../app/(public)/auth/continue/route.ts", import.meta.url), "utf8");
+  const callback = readFileSync(new URL("../app/(public)/auth/callback/route.ts", import.meta.url), "utf8");
   const login = readFileSync(new URL("../components/auth/LoginForm.tsx", import.meta.url), "utf8");
   assert.match(continuation, /select\("role"\)/);
   assert.match(continuation, /isAdminRole\(profile\?\.role\)/);

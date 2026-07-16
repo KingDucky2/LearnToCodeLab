@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Check, Eye, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { AuthMessage } from "@/components/auth/AuthMessage";
+import { getNextTabIndex, type TabNavigationKey } from "@/lib/accessibility";
 import { clampProgress, type MaintenanceSettings, type MaintenanceTask, type MaintenanceUpdate } from "@/lib/maintenance";
 
 type Props = { initialSettings: MaintenanceSettings; initialTasks: MaintenanceTask[]; initialUpdates: MaintenanceUpdate[]; lastUpdatedBy: string | null };
@@ -25,6 +26,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success" | "info"; text: string } | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const dirty = useMemo(() => snapshot(settings, tasks, updates) !== savedSnapshot, [savedSnapshot, settings, tasks, updates]);
   const completedTasks = tasks.filter((task) => task.status === "completed").length;
 
@@ -42,6 +44,15 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
   function updateTask(id: string, patch: Partial<MaintenanceTask>) { setTasks((items) => items.map((task) => task.id === id ? { ...task, ...patch } : task)); setMessage(null); }
   function updateUpdate(id: string, patch: Partial<MaintenanceUpdate>) { setUpdates((items) => items.map((update) => update.id === id ? { ...update, ...patch } : update)); setMessage(null); }
   function selectTab(tab: Tab) { setActiveTab(tab); window.history.replaceState(null, "", `#${tab}`); }
+  function navigateTabs(event: ReactKeyboardEvent<HTMLButtonElement>, index: number) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const nextIndex = getNextTabIndex(index, event.key as TabNavigationKey, tabs.length);
+    const nextTab = tabs[nextIndex];
+    if (!nextTab) return;
+    selectTab(nextTab.id);
+    tabRefs.current[nextIndex]?.focus();
+  }
   function discard() { const parsed = JSON.parse(savedSnapshot) as { settings: MaintenanceSettings; tasks: MaintenanceTask[]; updates: MaintenanceUpdate[] }; setSettings(parsed.settings); setTasks(parsed.tasks); setUpdates(parsed.updates); setMessage({ type: "info", text: "Unsaved changes discarded." }); }
   function moveTask(index: number, direction: -1 | 1) { const target = index + direction; if (target < 0 || target >= tasks.length) return; const next = [...tasks]; [next[index], next[target]] = [next[target], next[index]]; setTasks(next); }
 
@@ -63,6 +74,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
     setConfirmation({ title: enabled ? "Enable maintenance mode?" : "Reopen the public site?", description: enabled ? "Public visitors will be redirected to the maintenance page. Verified staff recovery remains available." : "Maintenance redirects will stop immediately after the saved configuration is refreshed.", actionLabel: enabled ? "Enable maintenance" : "Disable maintenance", tone: enabled ? "warning" : undefined, action: () => void save(next) });
   }
   function confirmDelete(kind: "task" | "update", id: string) { setConfirmation({ title: `Delete this ${kind}?`, description: "This item will be removed when you save the page. You can discard changes before saving to restore it.", actionLabel: `Delete ${kind}`, tone: "danger", action: () => { if (kind === "task") setTasks((items) => items.filter((item) => item.id !== id)); else setUpdates((items) => items.filter((item) => item.id !== id)); setConfirmation(null); } }); }
+  const closeConfirmation = useCallback(() => setConfirmation(null), []);
 
   return (
     <div className="grid gap-5">
@@ -77,7 +89,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
       {message ? <div aria-live="polite"><AuthMessage type={message.type}>{message.text}</AuthMessage></div> : null}
 
       <div className="border-b border-border">
-        <div className="flex gap-1 overflow-x-auto pb-px" role="tablist" aria-label="Maintenance settings">{tabs.map((tab) => <button key={tab.id} id={`tab-${tab.id}`} role="tab" aria-selected={activeTab === tab.id} aria-controls={`panel-${tab.id}`} type="button" onClick={() => selectTab(tab.id)} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-black ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"}`}>{tab.label}</button>)}</div>
+        <div className="flex gap-1 overflow-x-auto pb-px" role="tablist" aria-label="Maintenance settings">{tabs.map((tab, index) => <button ref={(element) => { tabRefs.current[index] = element; }} key={tab.id} id={`tab-${tab.id}`} role="tab" aria-selected={activeTab === tab.id} aria-controls={`panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1} type="button" onClick={() => selectTab(tab.id)} onKeyDown={(event) => navigateTabs(event, index)} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-black ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted hover:text-foreground"}`}>{tab.label}</button>)}</div>
       </div>
 
       <div id={`panel-${activeTab}`} role="tabpanel" aria-labelledby={`tab-${activeTab}`} tabIndex={0}>
@@ -98,7 +110,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
         {activeTab === "recovery" ? <AdminSection title="Recovery guarantees" description="These controls are informational; security enforcement remains on the server."><div className="grid gap-3 md:grid-cols-2"><RecoveryItem text="Staff sign-in remains reachable during maintenance." /><RecoveryItem text="Admin and owner roles are verified from Supabase." /><RecoveryItem text="Emergency override can force maintenance on or off." /><RecoveryItem text="OAuth callback, password reset, and sign-out routes bypass maintenance." /></div><div className="mt-5 danger-panel p-4"><h3 className="font-black">Emergency procedure</h3><p className="mt-1 text-sm text-muted">Use the deployment guide and existing emergency SQL procedure. There is no browser-exposed bypass token.</p></div></AdminSection> : null}
       </div>
 
-      <ConfirmDialog confirmation={confirmation} busy={saving} onCancel={() => setConfirmation(null)} />
+      <ConfirmDialog confirmation={confirmation} busy={saving} onCancel={closeConfirmation} />
     </div>
   );
 }
@@ -112,9 +124,35 @@ function EmptyState({ title, copy, action }: { title: string; copy: string; acti
 function RecoveryItem({ text }: { text: string }) { return <p className="flex gap-2 rounded-xl border border-border bg-surface p-4 text-sm font-bold text-secondary"><Check className="h-5 w-5 shrink-0 text-success" />{text}</p>; }
 
 function ConfirmDialog({ confirmation, busy, onCancel }: { confirmation: Confirmation; busy: boolean; onCancel: () => void }) {
-  const actionRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (confirmation) actionRef.current?.focus(); }, [confirmation]);
-  useEffect(() => { if (!confirmation) return; const close = (event: KeyboardEvent) => { if (event.key === "Escape") onCancel(); }; window.addEventListener("keydown", close); return () => window.removeEventListener("keydown", close); }, [confirmation, onCancel]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!confirmation) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    cancelRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) {
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [busy, confirmation, onCancel]);
   if (!confirmation) return null;
-  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/65 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-copy"><div className="w-full max-w-lg rounded-xl bg-surface p-6 shadow-2xl"><h2 id="confirm-title" className="type-section">{confirmation.title}</h2><p id="confirm-copy" className="mt-3 text-muted">{confirmation.description}</p><div className="mt-6 flex justify-end gap-2"><button type="button" className="btn-outline" onClick={onCancel}>Cancel</button><button ref={actionRef} type="button" disabled={busy} onClick={confirmation.action} className={confirmation.tone === "danger" ? "btn-danger" : confirmation.tone === "warning" ? "btn-danger" : "btn-primary"}>{busy ? "Working…" : confirmation.actionLabel}</button></div></div></div>;
+  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/65 p-4" aria-hidden="false"><div ref={dialogRef} className="w-full max-w-lg rounded-xl bg-surface p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-copy"><h2 id="confirm-title" className="type-section">{confirmation.title}</h2><p id="confirm-copy" className="mt-3 text-muted">{confirmation.description}</p><div className="mt-6 flex justify-end gap-2"><button ref={cancelRef} type="button" className="btn-outline" disabled={busy} onClick={onCancel}>Cancel</button><button type="button" disabled={busy} onClick={confirmation.action} className={confirmation.tone === "danger" ? "btn-danger" : confirmation.tone === "warning" ? "btn-danger" : "btn-primary"}>{busy ? "Working…" : confirmation.actionLabel}</button></div></div></div>;
 }

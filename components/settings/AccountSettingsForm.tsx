@@ -2,15 +2,16 @@
 
 import { FormEvent, useState } from "react";
 import { AuthMessage } from "@/components/auth/AuthMessage";
+import { AccountAvatar } from "@/components/AccountAvatar";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordGuidance } from "@/components/auth/PasswordGuidance";
 import { getAuthErrorMessage, isStrongEnoughPassword } from "@/lib/auth-utils";
 import { createClient } from "@/lib/supabase/browser";
 import { applyDisplayPreferences, type ThemePreference } from "@/components/ThemeInitializer";
+import type { AccountIdentity } from "@/lib/identity";
 
 type SettingsProps = {
-  email: string;
-  provider: string;
+  identity: AccountIdentity;
   preferences: {
     ai_personalization_enabled: boolean;
     model_improvement_opt_in: boolean;
@@ -32,7 +33,7 @@ type SettingsProps = {
 const toLabel = (value: string) => value.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 const toValue = (value: string) => value.toLowerCase().replaceAll(" ", "_");
 
-export function AccountSettingsForm({ email, provider, preferences, profile, learningPreferences }: SettingsProps) {
+export function AccountSettingsForm({ identity, preferences, profile, learningPreferences }: SettingsProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [theme, setTheme] = useState(toLabel(learningPreferences?.theme ?? "system"));
@@ -180,14 +181,15 @@ export function AccountSettingsForm({ email, provider, preferences, profile, lea
 
       <section className="surface-panel">
         <h2 className="text-2xl font-black text-foreground">Security</h2>
+        <div className="mt-4 flex items-center gap-3"><AccountAvatar identity={identity} decorative /><p className="min-w-0"><span className="block truncate font-black text-foreground">{identity.label}</span><span className="block truncate text-sm text-subtle">{identity.email}</span></p></div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-lg bg-surface-interactive p-4">
             <p className="text-xs font-black uppercase text-subtle">Account email</p>
-            <p className="mt-1 font-black text-foreground">{email}</p>
+            <p className="mt-1 font-black text-foreground">{identity.email || "No email on account"}</p>
           </div>
           <div className="rounded-lg bg-surface-interactive p-4">
             <p className="text-xs font-black uppercase text-subtle">Google connection</p>
-            <p className="mt-1 font-black text-foreground">{provider === "google" ? "Connected" : "Not connected"}</p>
+            <p className="mt-1 font-black text-foreground">{identity.googleConnected ? "Connected" : "Not connected"}</p>
           </div>
         </div>
         <form onSubmit={changePassword} className="mt-5 grid gap-3">

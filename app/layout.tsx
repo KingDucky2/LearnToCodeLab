@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AppNav } from "@/components/AppNav";
-import { AppFooter } from "@/components/AppFooter";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 
 const initializeTheme = `
@@ -27,9 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head><script dangerouslySetInnerHTML={{ __html: initializeTheme }} /></head>
       <body>
         <ThemeInitializer />
-        <AppNav />
         {children}
-        <AppFooter />
       </body>
     </html>
   );

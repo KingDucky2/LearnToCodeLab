@@ -3,28 +3,26 @@ import { redirect } from "next/navigation";
 import { FileText } from "lucide-react";
 import { PageShell, SectionHeader } from "@/components/PageShell";
 import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
-import { createClient } from "@/lib/supabase/server";
+import { resolveAccountIdentity } from "@/lib/identity";
+import { getCurrentUserRole } from "@/lib/maintenance-server";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+  const session = await getCurrentUserRole();
+  if (!session.user || !session.supabase) redirect("/login?next=/settings");
 
-  if (!user) redirect("/login?next=/settings");
-
-  const db = supabase as any;
+  const db = session.supabase as any;
   const [{ data: profile }, { data: preferences }, { data: learningPreferences }] = await Promise.all([
-    db.from("profiles").select("preferred_language, experience_level, learning_goal").eq("id", user.id).maybeSingle(),
-    db.from("privacy_preferences").select("ai_personalization_enabled, model_improvement_opt_in, cookie_preference").eq("user_id", user.id).maybeSingle(),
-    db.from("learning_preferences").select("theme, reduced_motion, lesson_difficulty, explanation_style").eq("user_id", user.id).maybeSingle()
+    db.from("profiles").select("experience_level,learning_goal").eq("id", session.user.id).maybeSingle(),
+    db.from("privacy_preferences").select("ai_personalization_enabled,model_improvement_opt_in,cookie_preference").eq("user_id", session.user.id).maybeSingle(),
+    db.from("learning_preferences").select("theme,reduced_motion,lesson_difficulty,explanation_style").eq("user_id", session.user.id).maybeSingle()
   ]);
+  const identity = resolveAccountIdentity(session.user, session.profile);
 
   return (
     <PageShell>
       <SectionHeader eyebrow="Settings" title="Tune your learning system." copy="Manage security, preferences, privacy choices, and account safety from one clean place." />
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        <AccountSettingsForm email={user.email ?? "No email on account"} provider={user.app_metadata?.provider ?? "email"} profile={profile} preferences={preferences} learningPreferences={learningPreferences} />
+        <AccountSettingsForm identity={identity} profile={{ ...profile, preferred_language: session.profile?.preferred_language ?? null }} preferences={preferences} learningPreferences={learningPreferences} />
         <aside className="h-fit surface-panel">
           <span className="grid h-12 w-12 place-items-center rounded-lg bg-amber-100 text-amber-800">
             <FileText aria-hidden="true" className="h-6 w-6" />

@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageShell, SectionHeader } from "@/components/PageShell";
+import { AccountAvatar } from "@/components/AccountAvatar";
 import { learningPaths } from "@/lib/curriculum";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { resolveAccountIdentity } from "@/lib/identity";
+import { getCurrentUserRole } from "@/lib/maintenance-server";
 
 export default async function DashboardPage() {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) redirect("/login?next=/dashboard");
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/login?next=/dashboard");
+  const session = await getCurrentUserRole();
+  if (!session.user) redirect("/login?next=/dashboard");
+  const identity = resolveAccountIdentity(session.user, session.profile);
 
   const focus = learningPaths.slice(0, 3);
   return (
     <PageShell>
       <SectionHeader eyebrow="Dashboard" title="Continue your path." copy="The dashboard answers what to do next, how you are improving, and what you are working toward." />
+      <div className="mb-5 flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3"><AccountAvatar identity={identity} decorative /><p className="min-w-0"><span className="block truncate font-black text-foreground">{identity.label}</span><span className="block truncate text-sm text-subtle">{identity.email}</span></p></div>
       <section className="grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
         <div className="surface-panel">
           <p className="text-sm font-extrabold text-warning">Continue learning</p>

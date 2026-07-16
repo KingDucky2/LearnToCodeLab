@@ -5,6 +5,8 @@ import { ChevronDown, LayoutDashboard, LogOut, Menu, Settings, ShieldCheck, User
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { AccountAvatar } from "@/components/AccountAvatar";
+import type { AccountIdentity } from "@/lib/identity";
 
 const publicNavItems = [
   { href: "/learn", label: "Learn" },
@@ -17,7 +19,7 @@ const privateNavItems = [
   { href: "/settings", label: "Settings" }
 ];
 
-type NavUser = { label: string; avatar: string | null; isAdmin: boolean } | null;
+type NavUser = { identity: AccountIdentity; isAdmin: boolean } | null;
 
 export function AppNavClient({ user }: { user: NavUser }) {
   const pathname = usePathname();
@@ -76,9 +78,9 @@ export function AppNavClient({ user }: { user: NavUser }) {
           <div className="mt-3 border-t border-border pt-3">
             {user ? (
               <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                <Link href="/profile" aria-label={`Open profile for ${user.label}`} className="btn-outline min-w-0 justify-start">
-                  <AccountAvatar user={user} />
-                  <span className="min-w-0 truncate">{user.label}</span>
+                <Link href="/profile" aria-label={`Open profile for ${user.identity.label}`} className="btn-outline min-w-0 justify-start">
+                  <AccountAvatar identity={user.identity} decorative />
+                  <span className="min-w-0 truncate">{user.identity.label}</span>
                 </Link>
                 <SignOutButton />
               </div>
@@ -106,12 +108,12 @@ function AccountMenu({ user, detailsRef }: { user: Exclude<NavUser, null>; detai
   return (
     <details ref={detailsRef} className="group relative">
       <summary className="btn-outline flex max-w-56 cursor-pointer list-none pr-3 [&::-webkit-details-marker]:hidden">
-        <AccountAvatar user={user} />
-        <span className="min-w-0 truncate" title={user.label}>{user.label}</span>
+        <AccountAvatar identity={user.identity} decorative />
+        <span className="min-w-0 truncate" title={user.identity.label}>{user.identity.label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
       </summary>
       <div className="absolute right-0 top-[calc(100%+8px)] w-64 rounded-lg border border-border bg-surface-elevated p-2 shadow-lab">
-        <p className="overflow-wrap-anywhere px-3 py-2 text-xs font-bold text-muted">Signed in as {user.label}</p>
+        <p className="overflow-wrap-anywhere px-3 py-2 text-xs font-bold text-muted">Signed in as {user.identity.label}</p>
         <nav className="grid gap-1" aria-label="Account navigation">
           {items.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="btn-ghost justify-start"><Icon className="h-4 w-4" aria-hidden="true" />{label}</Link>
@@ -120,15 +122,6 @@ function AccountMenu({ user, detailsRef }: { user: Exclude<NavUser, null>; detai
         <div className="mt-2 border-t border-border pt-2"><SignOutButton /></div>
       </div>
     </details>
-  );
-}
-
-function AccountAvatar({ user }: { user: Exclude<NavUser, null> }) {
-  return user.avatar ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={user.avatar} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" />
-  ) : (
-    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-secondary text-primary"><UserRound className="h-4 w-4" aria-hidden="true" /></span>
   );
 }
 

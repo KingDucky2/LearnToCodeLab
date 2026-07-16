@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getAuthErrorMessage, sanitizeReturnPath } from "@/lib/auth-utils";
+import { getAuthErrorMessage, sanitizeAdminReturnPath, sanitizeReturnPath } from "@/lib/auth-utils";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const safeNext = sanitizeReturnPath(requestUrl.searchParams.get("next"), "/dashboard");
   const recoveryLogin = requestUrl.searchParams.get("recovery") === "staff";
+  const safeNext = recoveryLogin
+    ? sanitizeAdminReturnPath(requestUrl.searchParams.get("next"), "/admin")
+    : sanitizeReturnPath(requestUrl.searchParams.get("next"), "/dashboard");
   const error = requestUrl.searchParams.get("error_description") ?? requestUrl.searchParams.get("error");
 
   function loginErrorRedirect(message: string) {

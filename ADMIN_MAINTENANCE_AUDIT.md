@@ -36,11 +36,13 @@ Aliases use temporary framework redirects because they are compatibility routes 
 ## Architecture after the redesign
 
 - `AdminShell` owns the desktop sidebar, mobile drawer, top bar, breadcrumb, role badge, account menu, and active navigation. Only Overview and Maintenance are presented because those are the only implemented admin areas.
+- Route groups separate the minimal root layout, the public navigation/footer layout, and the protected admin layout. Admin requests no longer render, query, or hydrate public navigation and no longer depend on CSS to hide it.
 - `AdminPageHeader`, `AdminCard`, and `AdminStatusBadge` provide the small shared admin component layer. Editor-specific sections, fields, toggles, empty states, action bar, tabs, and confirmation dialog stay close to the editor rather than becoming a generic framework.
-- `requireAdmin` and `getCurrentUserRole` use React request memoization. `AppNav`, admin layouts/pages, and the maintenance page now share one server user/profile result per render. The query selects only role, display name, avatar, and preferred language.
+- `requireAdmin` and `getCurrentUserRole` use React request memoization. Public identity surfaces share one server user/profile result per render, while admin pages share the protected layout result. The query selects only role, display name, avatar, and preferred language.
 - Admin pages still verify roles on the server. The save API independently verifies admin/owner access and the database RPC independently checks `auth.uid()` and `is_site_admin()` inside its transaction.
-- Middleware checks bypass paths before loading maintenance state. Static files and the public status endpoint skip both maintenance and session work. Session-sensitive auth/recovery bypass routes still run the Supabase cookie refresh without requesting maintenance data.
+- Middleware uses `classifyMaintenancePath` before loading maintenance state. Static files and the public status endpoint skip both maintenance and session work. Session-sensitive auth/recovery bypass routes still run the Supabase cookie refresh without requesting maintenance data. The matcher is only the coarse Next.js fast path.
 - The public maintenance RPC remains cached for one second. Saves clear the in-process cache and revalidate the root layout, public maintenance page, and editor. The polling status endpoint forces a refresh and returns `Cache-Control: no-store`.
+- `resolveAccountIdentity` is the shared identity policy. It prefers a valid stored profile avatar, then provider identity metadata, then user metadata; image failures advance through those candidates before initials. Google connection state comes only from Supabase identities and is never used for authorization.
 
 ## Request and query impact
 
@@ -48,6 +50,7 @@ Aliases use temporary framework redirects because they are compatibility routes 
 - Maintenance RPC calls were removed from every middleware pass for `/maintenance`, `/staff/sign-in`, auth callback/continue/reset routes, maintenance APIs, and excluded static assets.
 - Public maintenance rendering removes up to three repeated Supabase operations for an authenticated visitor: global navigation and page personalization now share the same `getUser` and profile result, and the separate personalization profile query is gone.
 - Admin maintenance rendering removes two repeated operations: the global navigation, admin layout, and page share the same `getUser` and profile query. Preview removes those two plus its separate profile query.
+- The hardened admin layout removes the public navigation operation entirely from `/admin/*`; the remaining admin layout/page calls share the memoized server session and profile result.
 - Login and signup no longer perform a second page-level `getUser`; middleware remains the canonical signed-in redirect check.
 - Independent settings, tasks, and update reads remain parallel. The updater display-name lookup is dependent on `updated_by` and therefore remains sequential.
 
@@ -67,6 +70,8 @@ Production builds were compared against detached `HEAD` using the same installed
 
 The four query-preserving alias pages changed from static redirect output to small dynamic routes because they read request search parameters. Canonical login and signup remain static. Admin and maintenance routes remain dynamic; no previously static product page became dynamic.
 
+The hardening build keeps shared first-load JS at 102 kB and `/admin` at 114 kB. `/admin/maintenance` is 122 kB (+1 kB for focus trapping and keyboard tab behavior), while preview and public maintenance remain 116 kB. Route size did not materially fall, but admin no longer executes the public `AppNav` server query or loads its public-layout chunk.
+
 ## Security and data integrity
 
 - No authentication architecture, RLS policy, role source, service-role behavior, middleware maintenance decision, emergency override, or database save procedure was replaced.
@@ -79,8 +84,16 @@ The four query-preserving alias pages changed from static redirect output to sma
 
 - Update categories and task-derived overall progress would require new schema fields and an additive migration; they were not simulated in client state or added destructively.
 - The editor warns on browser unload and refresh. A custom in-app route-transition blocker was not added because Next App Router does not expose a stable general-purpose navigation interception API; all editor-owned links are explicit and the dirty action bar remains visible.
-- Confirmation focus moves to the primary action and Escape closes the dialog. A full focus trap would be a reasonable follow-up if a dedicated accessible dialog primitive is adopted.
+- Confirmation dialogs now set safe initial focus, trap focus, restore the trigger, block background scrolling, and close with Escape when no save is in progress. Tabs support Left, Right, Home, and End keys.
 - The next phase should add browser-level interaction coverage with signed-in admin/owner/learner fixtures, then evaluate moving countdown and polling into a smaller client island to reduce hydration on the otherwise presentational public maintenance page.
+- Avatar upload/storage management remains intentionally out of scope. Existing HTTPS profile avatar URLs and provider avatars are resolved safely, with runtime failure fallback.
+
+## Future support and user-management extension points
+
+- Add implemented admin areas to the typed navigation list in `AdminShell` only after their server routes and authorization policies exist. Do not add placeholder pages, statistics, or links.
+- Keep the shared admin layout as the server authorization boundary for future Users, Support tickets, Account recovery, and Password-reset assistance routes. Sensitive APIs must independently repeat authorization, as the maintenance save API does now.
+- Administrators must never view or receive passwords. Password assistance should initiate Supabase Auth reset-link flows on the server; service-role credentials must never be serialized to client components.
+- Role changes must be narrowly authorized and audited. Destructive or sensitive account actions require explicit confirmation and an auditable server-side operation.
 
 ## Validation
 

@@ -1,31 +1,21 @@
 import { redirect } from "next/navigation";
 import { PageShell, SectionHeader } from "@/components/PageShell";
+import { AccountAvatar } from "@/components/AccountAvatar";
 import { ProfileForm } from "@/components/profile/ProfileForm";
-import { createClient } from "@/lib/supabase/server";
-
-function providerLabel(provider: string | undefined) {
-  if (!provider) return "Email";
-  return provider === "google" ? "Google" : provider;
-}
+import { resolveAccountIdentity } from "@/lib/identity";
+import { getCurrentUserRole } from "@/lib/maintenance-server";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+  const session = await getCurrentUserRole();
+  if (!session.user || !session.supabase) redirect("/login?next=/profile");
 
-  if (!user) redirect("/login?next=/profile");
-
-  const db = supabase as any;
+  const db = session.supabase as any;
   const { data: profile } = await db
     .from("profiles")
-    .select("display_name, username, avatar_url, bio, preferred_language, experience_level, learning_goal, created_at")
-    .eq("id", user.id)
+    .select("username,bio,experience_level,learning_goal,created_at")
+    .eq("id", session.user.id)
     .maybeSingle();
-
-  const displayName = profile?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Learner";
-  const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url || "";
-  const provider = user.app_metadata?.provider;
+  const identity = resolveAccountIdentity(session.user, session.profile);
 
   return (
     <PageShell>
@@ -33,15 +23,10 @@ export default async function ProfilePage() {
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <aside className="glass rounded-lg p-6">
           <div className="flex flex-wrap items-center gap-5">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="" className="h-24 w-24 rounded-lg object-cover shadow-lab" />
-            ) : (
-              <div className="grid h-24 w-24 place-items-center rounded-lg bg-lab-blue/10 text-4xl font-black text-primary">{displayName.slice(0, 1).toUpperCase()}</div>
-            )}
+            <AccountAvatar identity={identity} size="lg" className="shadow-lab" />
             <div>
-              <h2 className="text-3xl font-black text-foreground">{displayName}</h2>
-              <p className="mt-2 text-muted">{user.email}</p>
+              <h2 className="text-3xl font-black text-foreground">{identity.label}</h2>
+              <p className="mt-2 text-muted">{identity.email}</p>
             </div>
           </div>
           <div className="mt-6 grid gap-3">
@@ -51,7 +36,7 @@ export default async function ProfilePage() {
             </div>
             <div className="rounded-lg border border-border bg-surface p-4">
               <p className="text-xs font-black uppercase text-subtle">Provider</p>
-              <p className="mt-1 font-black text-foreground">{providerLabel(provider)}</p>
+              <p className="mt-1 font-black text-foreground">{identity.googleConnected ? "Google connected" : "Email"}</p>
             </div>
             <div className="rounded-lg border border-border bg-surface p-4">
               <p className="text-xs font-black uppercase text-subtle">Joined</p>
@@ -61,11 +46,11 @@ export default async function ProfilePage() {
         </aside>
         <ProfileForm
           profile={{
-            display_name: displayName,
+            display_name: identity.label,
             username: profile?.username ?? null,
-            avatar_url: avatarUrl,
+            avatar_url: session.profile?.avatar_url ?? null,
             bio: profile?.bio ?? null,
-            preferred_language: profile?.preferred_language ?? null,
+            preferred_language: session.profile?.preferred_language ?? null,
             experience_level: profile?.experience_level ?? null,
             learning_goal: profile?.learning_goal ?? null
           }}

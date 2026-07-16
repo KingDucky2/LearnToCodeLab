@@ -220,8 +220,6 @@ input[type="radio"] {
 
 body:has(main[data-maintenance-page]) > header,
 body:has(main[data-maintenance-page]) > footer { display: none; }
-body:has([data-admin-page]) > header,
-body:has([data-admin-page]) > footer { display: none; }
 
 .maintenance-page { background: var(--background); }
 .maintenance-page > div, .maintenance-online { border-radius: var(--radius); }

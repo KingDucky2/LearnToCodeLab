@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { MaintenanceAdminForm } from "@/components/admin/MaintenanceAdminForm";
 import { AdminPageHeader } from "@/components/admin/AdminShell";
 import { defaultMaintenanceSettings } from "@/lib/maintenance";
@@ -8,8 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminMaintenancePage() {
   const admin = await requireAdmin();
-  if (!admin.user) redirect("/login?next=/admin/maintenance");
-  if (!admin.authorized || !admin.supabase) redirect("/dashboard");
+  if (!admin.supabase) return null;
   const db = admin.supabase as any;
   const [{ data: settings }, { data: tasks }, { data: updates }] = await Promise.all([
     db.from("site_settings").select("maintenance_enabled,maintenance_title,maintenance_message,maintenance_status,maintenance_badge_text,estimated_return_at,show_countdown,show_progress,progress_percent,allow_admin_bypass,allow_authenticated_users,allow_login_during_maintenance,show_personalized_message,show_saved_progress_message,auto_refresh_enabled,auto_refresh_interval_seconds,support_message,contact_email,updated_at,updated_by").eq("id", "global").maybeSingle(),
