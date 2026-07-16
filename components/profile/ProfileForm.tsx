@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getAuthErrorMessage, normalizeUsername, validateUsername } from "@/lib/auth-utils";
+import { normalizeAvatarUrl } from "@/lib/identity";
 import { createClient } from "@/lib/supabase/browser";
 import { AuthMessage } from "@/components/auth/AuthMessage";
 
@@ -22,6 +24,7 @@ const experienceLevels = ["New coder", "Some basics", "Building projects", "Adva
 const goals = ["Build websites", "Get job ready", "Make games", "Automate tasks", "Learn computer science"];
 
 export function ProfileForm({ profile }: ProfileFormProps) {
+  const router = useRouter();
   const [displayName, setDisplayName] = useState(profile.display_name ?? "");
   const [username, setUsername] = useState(profile.username ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
@@ -46,6 +49,11 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       setMessage({ type: "error", text: usernameResult.message ?? "Choose a different username." });
       return;
     }
+    const normalizedAvatarUrl = normalizeAvatarUrl(avatarUrl);
+    if (avatarUrl.trim() && !normalizedAvatarUrl) {
+      setMessage({ type: "error", text: "Use a valid HTTPS avatar URL." });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -65,7 +73,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         .update({
           display_name: displayName.trim(),
           username: usernameResult.normalized || null,
-          avatar_url: avatarUrl.trim() || null,
+          avatar_url: normalizedAvatarUrl,
           bio: bio.trim() || null,
           preferred_language: preferredLanguage,
           experience_level: experienceLevel,
@@ -81,7 +89,9 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       }
 
       setUsername(normalizeUsername(username));
+      setAvatarUrl(normalizedAvatarUrl ?? "");
       setMessage({ type: "success", text: "Profile updated." });
+      router.refresh();
     } finally {
       setLoading(false);
     }

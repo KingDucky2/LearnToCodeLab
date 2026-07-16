@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAuthPath, isProtectedPath, sanitizeReturnPath } from "@/lib/auth-utils";
+import { isAuthPath, isProtectedPath, sanitizeAdminReturnPath, sanitizeReturnPath } from "@/lib/auth-utils";
 import { createMiddlewareClient, hasSupabaseEnv } from "@/lib/supabase/middleware";
 import { getPublicMaintenanceState } from "@/lib/maintenance-server";
-import { getMaintenanceAccessDecision, isAdminPath, safeMaintenanceReturnPath } from "@/lib/maintenance";
+import { classifyMaintenancePath, getMaintenanceAccessDecision, isAdminPath, safeMaintenanceReturnPath } from "@/lib/maintenance";
 
 function copyResponseCookies(source: NextResponse | undefined, target: NextResponse) {
   source?.cookies.getAll().forEach((cookie) => target.cookies.set(cookie));
@@ -25,7 +25,7 @@ function staffSignInRedirect(request: NextRequest, sourceResponse?: NextResponse
   const redirectUrl = request.nextUrl.clone();
   redirectUrl.pathname = "/staff/sign-in";
   redirectUrl.search = "";
-  redirectUrl.searchParams.set("next", safeMaintenanceReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`));
+  redirectUrl.searchParams.set("next", sanitizeAdminReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`, "/admin"));
   const redirect = NextResponse.redirect(redirectUrl, 307);
   copyResponseCookies(sourceResponse, redirect);
   return redirect;
@@ -33,12 +33,25 @@ function staffSignInRedirect(request: NextRequest, sourceResponse?: NextResponse
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  // Recovery, auth callbacks, status APIs, and static files never need a
+  // maintenance lookup. This also prevents a bypass route from paying for an
+  // RPC it will never use.
+  const pathClassification = classifyMaintenancePath(pathname);
+  if (pathClassification.bypassMaintenance) {
+    if (!pathClassification.refreshSession || !hasSupabaseEnv()) return NextResponse.next();
+    // Keep Supabase's cookie refresh behavior for session-sensitive recovery
+    // and authentication routes even though maintenance data is unnecessary.
+    const { supabase, response } = createMiddlewareClient(request);
+    await supabase.auth.getUser();
+    return response();
+  }
   const maintenance = await getPublicMaintenanceState();
 
   if (!hasSupabaseEnv()) {
     const decision = getMaintenanceAccessDecision({ pathname, enabled: maintenance.settings.maintenance_enabled, emergency: maintenance.emergency, authenticated: false, settings: maintenance.settings });
     if (decision === "staff-sign-in") return staffSignInRedirect(request);
     if (decision === "maintenance") return maintenanceRedirect(request);
+    if (isAdminPath(pathname)) return staffSignInRedirect(request);
     if (isProtectedPath(pathname)) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
@@ -65,6 +78,7 @@ export async function middleware(request: NextRequest) {
   if (decision === "staff-sign-in") return staffSignInRedirect(request, response());
   if (decision === "maintenance") return maintenanceRedirect(request, response(), user ? "signed-in-access-restricted" : undefined);
 
+  if (!user && isAdminPath(pathname)) return staffSignInRedirect(request, response());
   if (!user && isProtectedPath(pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
@@ -93,5 +107,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
+  // Coarse static fast path required by Next.js. classifyMaintenancePath is
+  // authoritative for every request that reaches middleware.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:css|js|map|svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)$).*)"]
 };

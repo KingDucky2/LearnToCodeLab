@@ -1,4 +1,5 @@
 import { createClient as createPublicClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { defaultMaintenanceSettings, isAdminRole, resolveMaintenanceOverride, type MaintenanceOverride, type MaintenanceState } from "@/lib/maintenance";
 
@@ -70,16 +71,16 @@ export async function getPublicMaintenanceState({ forceRefresh = false }: { forc
   }
 }
 
-export async function getCurrentUserRole() {
+export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   const supabase = await createClient();
   const { data: { user } } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-  if (!supabase || !user) return { supabase, user: null, role: null };
+  if (!supabase || !user) return { supabase, user: null, role: null, profile: null };
   const db = supabase as any;
-  const { data } = await db.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  return { supabase, user, role: (data?.role as string | undefined) ?? "learner" };
-}
+  const { data } = await db.from("profiles").select("role,display_name,avatar_url,preferred_language").eq("id", user.id).maybeSingle();
+  return { supabase, user, role: (data?.role as string | undefined) ?? "learner", profile: data ?? null };
+});
 
-export async function requireAdmin() {
+export const requireAdmin = cache(async function requireAdmin() {
   const session = await getCurrentUserRole();
   return { ...session, authorized: Boolean(session.user && isAdminRole(session.role)) };
-}
+});

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { isProtectedPath, isValidEmail, sanitizeAdminReturnPath, sanitizeReturnPath, validateUsername } from "../lib/auth-utils.ts";
+import { canonicalRouteWithSearch, isProtectedPath, isValidEmail, sanitizeAdminReturnPath, sanitizeReturnPath, validateUsername } from "../lib/auth-utils.ts";
 import { clampProgress, defaultMaintenanceSettings, getCountdownRemaining, getMaintenanceAccessDecision, isAdminRole, isEmergencyMaintenanceValue, isMaintenanceBypassPath, isMaintenanceTaskStatus, isOwnerRole, resolveMaintenanceOverride, safeMaintenanceReturnPath, shouldRedirectForMaintenance } from "../lib/maintenance.ts";
 
 test("sanitizeReturnPath accepts same-site relative paths", () => {
@@ -13,6 +13,13 @@ test("sanitizeReturnPath rejects external and protocol-relative targets", () => 
   assert.equal(sanitizeReturnPath("https://evil.example/login"), "/dashboard");
   assert.equal(sanitizeReturnPath("//evil.example/login"), "/dashboard");
   assert.equal(sanitizeReturnPath("\\evil"), "/dashboard");
+});
+
+test("canonical auth aliases preserve query parameters without interpreting them", () => {
+  assert.equal(canonicalRouteWithSearch("/login", { next: "/dashboard?tab=1", error: "Try again" }), "/login?next=%2Fdashboard%3Ftab%3D1&error=Try+again");
+  assert.equal(canonicalRouteWithSearch("/signup", {}), "/signup");
+  assert.equal(canonicalRouteWithSearch("/login", { tag: ["one", "two"] }), "/login?tag=one&tag=two");
+  assert.equal(sanitizeReturnPath("https://evil.example", "/login"), "/login");
 });
 
 test("staff recovery accepts only safe admin return paths", () => {
@@ -110,9 +117,60 @@ test("maintenance page always exposes neutral staff recovery", () => {
   assert.match(middleware, /signed-in-access-restricted/);
 });
 
+test("admin shell provides real navigation and mobile controls", () => {
+  const shell = readFileSync(new URL("../components/admin/AdminShell.tsx", import.meta.url), "utf8");
+  const layout = readFileSync(new URL("../app/(admin)/admin/layout.tsx", import.meta.url), "utf8");
+  assert.match(shell, /Overview/);
+  assert.match(shell, /Maintenance/);
+  assert.match(shell, /aria-label="Open admin navigation"/);
+  assert.match(shell, /aria-current=\{active \? "page"/);
+  assert.match(shell, /AdminShell/);
+  assert.match(layout, /requireAdmin\(\)/);
+  assert.match(layout, /staff\/sign-in\?next=\/admin/);
+});
+
+test("maintenance editor uses explicit creation, validation, confirmation, and dirty-state actions", () => {
+  const editor = readFileSync(new URL("../components/admin/MaintenanceAdminForm.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(editor, /title: "New task"/);
+  assert.doesNotMatch(editor, /title: "Maintenance update"/);
+  assert.match(editor, /Every task needs a title/);
+  assert.match(editor, /Every update needs a title and message/);
+  assert.match(editor, /Unsaved changes/);
+  assert.match(editor, /Discard/);
+  assert.match(editor, /beforeunload/);
+  assert.match(editor, /Delete this \$\{kind\}/);
+  assert.match(editor, /Move task up/);
+  assert.match(editor, /Move task down/);
+  assert.match(editor, /role="tablist"/);
+  assert.match(editor, /aria-selected=\{activeTab === tab.id\}/);
+});
+
+test("public maintenance UI handles expiration, local time, empty sections, and hidden-tab polling", () => {
+  const experience = readFileSync(new URL("../components/maintenance/MaintenanceExperience.tsx", import.meta.url), "utf8");
+  assert.match(experience, /Maintenance should be complete soon/);
+  assert.match(experience, /local time/);
+  assert.match(experience, /document\.visibilityState !== "visible"/);
+  assert.match(experience, /visibilitychange/);
+  assert.match(experience, /tasks\.length \?/);
+  assert.match(experience, /updates\.length \?/);
+  assert.match(experience, /Admin Preview/);
+  assert.match(experience, /Saved data only/);
+  assert.match(experience, /aria-label=\{`\$\{task\.title\} progress`\}/);
+});
+
+test("middleware skips maintenance lookup for bypass and static routes", () => {
+  const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
+  const bypassIndex = middleware.indexOf("if (pathClassification.bypassMaintenance)");
+  const lookupIndex = middleware.indexOf("await getPublicMaintenanceState()");
+  assert.ok(bypassIndex > -1 && bypassIndex < lookupIndex);
+  assert.match(middleware, /classifyMaintenancePath\(pathname\)/);
+  assert.match(middleware, /css\|js\|map/);
+  assert.match(middleware, /woff\|woff2\|ttf/);
+});
+
 test("post-login routing verifies roles server-side during maintenance", () => {
-  const continuation = readFileSync(new URL("../app/auth/continue/route.ts", import.meta.url), "utf8");
-  const callback = readFileSync(new URL("../app/auth/callback/route.ts", import.meta.url), "utf8");
+  const continuation = readFileSync(new URL("../app/(public)/auth/continue/route.ts", import.meta.url), "utf8");
+  const callback = readFileSync(new URL("../app/(public)/auth/callback/route.ts", import.meta.url), "utf8");
   const login = readFileSync(new URL("../components/auth/LoginForm.tsx", import.meta.url), "utf8");
   assert.match(continuation, /select\("role"\)/);
   assert.match(continuation, /isAdminRole\(profile\?\.role\)/);
