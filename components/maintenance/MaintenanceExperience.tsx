@@ -106,9 +106,9 @@ export function MaintenanceExperience({ state, returnTo, profile, preview = fals
   }
 
   return (
-    <main data-maintenance-page className="maintenance-page min-h-screen px-4 py-5 sm:px-6 sm:py-8">
+    <main data-maintenance-page className="maintenance-page min-h-dvh px-4 py-5 sm:px-6 sm:py-8">
       {preview ? <div className="mx-auto mb-4 flex max-w-7xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950"><div><strong className="block">Admin Preview</strong><span className="text-xs">Saved data only. Unsaved editor changes are not reflected.</span></div><div className="flex items-center gap-2" role="group" aria-label="Preview viewport"><PreviewButton label="Desktop" active={previewWidth === "desktop"} onClick={() => setPreviewWidth("desktop")}><Laptop /></PreviewButton><PreviewButton label="Tablet" active={previewWidth === "tablet"} onClick={() => setPreviewWidth("tablet")}><Tablet /></PreviewButton><PreviewButton label="Mobile" active={previewWidth === "mobile"} onClick={() => setPreviewWidth("mobile")}><Smartphone /></PreviewButton><Link href="/admin/maintenance" className="btn-outline bg-white">Return to admin</Link></div></div> : null}
-      <div style={preview && previewWidth !== "desktop" ? { gridTemplateColumns: "1fr" } : undefined} className={`mx-auto grid min-h-[calc(100vh-2.5rem)] overflow-hidden border border-border bg-surface shadow-lab transition-[max-width] ${previewWidth === "mobile" ? "max-w-[390px]" : previewWidth === "tablet" ? "max-w-3xl" : "max-w-7xl"} lg:grid-cols-[minmax(260px,.58fr)_minmax(0,1.42fr)]`}>
+      <div style={preview && previewWidth !== "desktop" ? { gridTemplateColumns: "1fr" } : undefined} className={`mx-auto grid min-h-[calc(100dvh-2.5rem)] overflow-hidden border border-border bg-surface shadow-lab transition-[max-width] ${previewWidth === "mobile" ? "max-w-[390px]" : previewWidth === "tablet" ? "max-w-3xl" : "max-w-7xl"} lg:grid-cols-[minmax(260px,.58fr)_minmax(0,1.42fr)]`}>
         <MaintenanceHero emergency={state.emergency} preview={preview} status={settings.maintenance_status} />
         <section className="maintenance-content flex flex-col p-6 sm:p-9 lg:p-12" aria-labelledby="maintenance-title">
           <div className="flex flex-wrap items-center justify-between gap-3">

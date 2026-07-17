@@ -74,9 +74,9 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { id
 
   return (
     <AdminInterfaceModeContext.Provider value={modeContext}>
-    <div data-admin-page data-admin-mode={mode} className="min-h-screen bg-background lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div data-admin-page data-admin-mode={mode} className="min-h-dvh bg-background lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
       <button type="button" aria-label="Close admin navigation" className={`fixed inset-0 z-40 bg-slate-950/55 lg:hidden ${open ? "block" : "hidden"}`} onClick={() => setOpen(false)} />
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(300px,88vw)] flex-col border-r border-slate-700 bg-lab-navy text-white transition-transform lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(300px,88vw)] flex-col border-r border-slate-700 bg-lab-navy text-white transition-transform lg:sticky lg:top-0 lg:h-dvh lg:w-auto lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-20 items-center justify-between gap-3 border-b border-white/10 px-5">
           <Link href="/admin" className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none"><BrandLogo /><span className="min-w-0"><strong className="block truncate text-sm">LearnToCode Lab</strong><span className="block text-xs text-blue-200">Administration</span></span></Link>
           <button type="button" className="btn-icon text-white lg:hidden" aria-label="Close navigation" onClick={() => setOpen(false)}><X className="h-5 w-5" /></button>
