@@ -197,6 +197,14 @@ Never edit an already-applied production migration.
 
 Always create a new corrective migration.
 
+The admin support and user-management system requires:
+
+```
+supabase/migrations/202607160001_admin_support_system.sql
+```
+
+Apply it before exercising `/admin/users`, `/admin/support`, `/admin/activity`, or learner `/support` routes. Confirm RLS with separate learner and staff sessions. Existing profiles default to active; no destructive backfill is performed.
+
 ---
 
 # Owner Role

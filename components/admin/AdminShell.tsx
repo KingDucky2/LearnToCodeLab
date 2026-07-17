@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, ExternalLink, LayoutDashboard, LogOut, Menu, Wrench, X } from "lucide-react";
+import { Activity, ChevronRight, ExternalLink, LayoutDashboard, LifeBuoy, LogOut, Menu, Users, Wrench, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { AccountAvatar } from "@/components/AccountAvatar";
 import type { AccountIdentity } from "@/lib/identity";
+import { AdminQuickActions } from "@/components/admin/AdminQuickActions";
 
 type AdminNavigationItem = { href: string; label: string; icon: typeof LayoutDashboard; exact: boolean };
 
-// Add implemented admin areas here. Future users and support sections should
-// supply real server-authorized routes before they are exposed in navigation.
 const navigation: AdminNavigationItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/admin/maintenance", label: "Maintenance", icon: Wrench, exact: false }
+  { href: "/admin/users", label: "Users", icon: Users, exact: false },
+  { href: "/admin/support", label: "Support", icon: LifeBuoy, exact: false },
+  { href: "/admin/maintenance", label: "Maintenance", icon: Wrench, exact: false },
+  { href: "/admin/activity", label: "Activity", icon: Activity, exact: false }
 ];
 
 export function AdminShell({ children, user }: { children: ReactNode; user: { identity: AccountIdentity; role: string } }) {
@@ -50,6 +52,7 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { id
           </details>
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <AdminQuickActions />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAuthPath, isProtectedPath, sanitizeAdminReturnPath, sanitizeReturnPath } from "@/lib/auth-utils";
+import { isAuthPath, isProtectedPath, isSuspendedAccountAllowedPath, sanitizeAdminReturnPath, sanitizeReturnPath } from "@/lib/auth-utils";
 import { createMiddlewareClient, hasSupabaseEnv } from "@/lib/supabase/middleware";
 import { getPublicMaintenanceState } from "@/lib/maintenance-server";
 import { classifyMaintenancePath, getMaintenanceAccessDecision, isAdminPath, safeMaintenanceReturnPath } from "@/lib/maintenance";
@@ -67,11 +67,13 @@ export async function middleware(request: NextRequest) {
     data: { user }
   } = await supabase.auth.getUser();
   let role: string | null = null;
-  const needsRole = Boolean(user && maintenance.settings.maintenance_enabled && (isAdminPath(pathname) || (maintenance.settings.allow_admin_bypass && !maintenance.emergency)));
-  if (user && needsRole) {
+  let accountStatus: string | null = null;
+  const needsProfile = Boolean(user && (isProtectedPath(pathname) || (maintenance.settings.maintenance_enabled && maintenance.settings.allow_admin_bypass && !maintenance.emergency)));
+  if (user && needsProfile) {
     const db = supabase as any;
-    const { data } = await db.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const { data } = await db.from("profiles").select("role,account_status").eq("id", user.id).maybeSingle();
     role = data?.role ?? null;
+    accountStatus = data?.account_status ?? "active";
   }
 
   const decision = getMaintenanceAccessDecision({ pathname, enabled: maintenance.settings.maintenance_enabled, emergency: maintenance.emergency, authenticated: Boolean(user), role, settings: maintenance.settings });
@@ -85,6 +87,16 @@ export async function middleware(request: NextRequest) {
     redirectUrl.search = "";
     redirectUrl.searchParams.set("next", sanitizeReturnPath(`${pathname}${request.nextUrl.search}`));
     return NextResponse.redirect(redirectUrl);
+  }
+
+  if (user && accountStatus === "suspended" && isProtectedPath(pathname) && !isSuspendedAccountAllowedPath(pathname)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/support";
+    redirectUrl.search = "";
+    redirectUrl.searchParams.set("notice", "account-restricted");
+    const redirect = NextResponse.redirect(redirectUrl, 307);
+    copyResponseCookies(response(), redirect);
+    return redirect;
   }
 
   if (user && (pathname === "/login" || pathname === "/signup" || pathname === "/auth/sign-in" || pathname === "/auth/create-account")) {

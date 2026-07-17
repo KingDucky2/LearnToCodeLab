@@ -172,7 +172,7 @@ test("post-login routing verifies roles server-side during maintenance", () => {
   const continuation = readFileSync(new URL("../app/(public)/auth/continue/route.ts", import.meta.url), "utf8");
   const callback = readFileSync(new URL("../app/(public)/auth/callback/route.ts", import.meta.url), "utf8");
   const login = readFileSync(new URL("../components/auth/LoginForm.tsx", import.meta.url), "utf8");
-  assert.match(continuation, /select\("role"\)/);
+  assert.match(continuation, /select\("role,account_status"\)/);
   assert.match(continuation, /isAdminRole\(profile\?\.role\)/);
   assert.match(continuation, /"\/admin\/maintenance"/);
   assert.match(continuation, /allow_authenticated_users/);

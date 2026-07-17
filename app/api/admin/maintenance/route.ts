@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { clampProgress, isMaintenanceTaskStatus, type MaintenanceSettings, type MaintenanceTask, type MaintenanceUpdate } from "@/lib/maintenance";
 import { invalidateMaintenanceStateCache, requireAdmin } from "@/lib/maintenance-server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { writeAdminAudit } from "@/lib/admin-server";
 
 type Payload = { settings?: Partial<MaintenanceSettings>; tasks?: MaintenanceTask[]; updates?: MaintenanceUpdate[] };
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -62,6 +64,9 @@ export async function PUT(request: Request) {
     updates_payload: normalizedUpdates
   });
   if (saveError) return NextResponse.json({ message: "Maintenance controls could not be saved." }, { status: 500 });
+
+  const auditClient = createAdminClient();
+  if (auditClient) await writeAdminAudit({ service: auditClient, actorId: admin.user.id, actorRole: admin.role || "unknown", action: "maintenance.configuration", targetType: "site", targetId: "global", summary: normalizedSettings.maintenance_enabled ? "Maintenance configuration saved with maintenance enabled." : "Maintenance configuration saved with the site online.", result: "success" });
 
   invalidateMaintenanceStateCache();
   revalidatePath("/", "layout");

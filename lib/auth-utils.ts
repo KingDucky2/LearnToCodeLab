@@ -2,6 +2,8 @@ export const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-pass
 
 export const protectedRoutes = ["/dashboard", "/profile", "/settings", "/onboarding", "/admin", "/my-learning", "/projects"] as const;
 
+export const suspendedAccountAllowedRoutes = ["/support", "/login", "/forgot-password", "/reset-password", "/auth", "/staff/sign-in", "/maintenance"] as const;
+
 const fallbackPath = "/dashboard";
 
 export function isProtectedPath(pathname: string) {
@@ -10,6 +12,10 @@ export function isProtectedPath(pathname: string) {
 
 export function isAuthPath(pathname: string) {
   return authRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+export function isSuspendedAccountAllowedPath(pathname: string) {
+  return suspendedAccountAllowedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
 export function sanitizeReturnPath(value: string | null | undefined, fallback = fallbackPath) {

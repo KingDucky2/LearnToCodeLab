@@ -76,11 +76,11 @@ export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   const { data: { user } } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!supabase || !user) return { supabase, user: null, role: null, profile: null };
   const db = supabase as any;
-  const { data } = await db.from("profiles").select("role,display_name,avatar_url,preferred_language").eq("id", user.id).maybeSingle();
+  const { data } = await db.from("profiles").select("role,display_name,avatar_url,preferred_language,account_status").eq("id", user.id).maybeSingle();
   return { supabase, user, role: (data?.role as string | undefined) ?? "learner", profile: data ?? null };
 });
 
 export const requireAdmin = cache(async function requireAdmin() {
   const session = await getCurrentUserRole();
-  return { ...session, authorized: Boolean(session.user && isAdminRole(session.role)) };
+  return { ...session, authorized: Boolean(session.user && isAdminRole(session.role) && session.profile?.account_status !== "suspended") };
 });
