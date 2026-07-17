@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { AccountAvatar } from "@/components/AccountAvatar";
 import type { AccountIdentity } from "@/lib/identity";
+import { RoleBadge } from "@/components/RoleBadge";
 
 const publicNavItems = [
   { href: "/learn", label: "Learn" },
@@ -19,7 +20,7 @@ const privateNavItems = [
   { href: "/settings", label: "Settings" }
 ];
 
-type NavUser = { identity: AccountIdentity; isAdmin: boolean } | null;
+type NavUser = { identity: AccountIdentity; isAdmin: boolean; role: string } | null;
 
 export function AppNavClient({ user }: { user: NavUser }) {
   const pathname = usePathname();
@@ -81,6 +82,7 @@ export function AppNavClient({ user }: { user: NavUser }) {
                 <Link href="/profile" aria-label={`Open profile for ${user.identity.label}`} className="btn-outline min-w-0 justify-start">
                   <AccountAvatar identity={user.identity} decorative />
                   <span className="min-w-0 truncate">{user.identity.label}</span>
+                  <RoleBadge role={user.role} />
                 </Link>
                 <SignOutButton />
               </div>
@@ -109,11 +111,11 @@ function AccountMenu({ user, detailsRef }: { user: Exclude<NavUser, null>; detai
     <details ref={detailsRef} className="group relative">
       <summary className="btn-outline flex max-w-56 cursor-pointer list-none pr-3 [&::-webkit-details-marker]:hidden">
         <AccountAvatar identity={user.identity} decorative />
-        <span className="min-w-0 truncate" title={user.identity.label}>{user.identity.label}</span>
+        <span className="min-w-0 truncate" title={user.identity.label}>{user.identity.label}</span><RoleBadge role={user.role} />
         <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
       </summary>
       <div className="absolute right-0 top-[calc(100%+8px)] w-64 rounded-lg border border-border bg-surface-elevated p-2 shadow-lab">
-        <p className="overflow-wrap-anywhere px-3 py-2 text-xs font-bold text-muted">Signed in as {user.identity.label}</p>
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs font-bold text-muted"><span className="overflow-wrap-anywhere">Signed in as {user.identity.label}</span><RoleBadge role={user.role} /></div>
         <nav className="grid gap-1" aria-label="Account navigation">
           {items.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="btn-ghost justify-start"><Icon className="h-4 w-4" aria-hidden="true" />{label}</Link>

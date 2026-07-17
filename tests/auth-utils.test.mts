@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { canonicalRouteWithSearch, isProtectedPath, isValidEmail, sanitizeAdminReturnPath, sanitizeReturnPath, validateUsername } from "../lib/auth-utils.ts";
+import { canonicalRouteWithSearch, isOnboardingExemptPath, isProtectedPath, isValidEmail, sanitizeAdminReturnPath, sanitizeReturnPath, validateUsername } from "../lib/auth-utils.ts";
 import { clampProgress, defaultMaintenanceSettings, getCountdownRemaining, getMaintenanceAccessDecision, isAdminRole, isEmergencyMaintenanceValue, isMaintenanceBypassPath, isMaintenanceTaskStatus, isOwnerRole, resolveMaintenanceOverride, safeMaintenanceReturnPath, shouldRedirectForMaintenance } from "../lib/maintenance.ts";
 
 test("sanitizeReturnPath accepts same-site relative paths", () => {
@@ -35,7 +35,7 @@ test("email validation accepts normal addresses and rejects malformed values", (
 });
 
 test("username validation normalizes and blocks reserved names", () => {
-  assert.deepEqual(validateUsername(" Good_Name "), { valid: true, normalized: "good_name" });
+  assert.deepEqual(validateUsername(" Good_Name "), { valid: true, normalized: "Good_Name" });
   assert.equal(validateUsername("admin").valid, false);
   assert.equal(validateUsername("bad-name").valid, false);
 });
@@ -46,6 +46,11 @@ test("private account and onboarding routes are protected", () => {
   assert.equal(isProtectedPath("/onboarding"), true);
   assert.equal(isProtectedPath("/admin/maintenance"), true);
   assert.equal(isProtectedPath("/learn"), false);
+});
+
+test("required onboarding keeps recovery and legal routes reachable", () => {
+  for (const path of ["/onboarding", "/privacy", "/terms", "/settings/privacy", "/api/account/delete", "/auth/sign-out", "/auth/callback", "/auth/continue"]) assert.equal(isOnboardingExemptPath(path), true, path);
+  assert.equal(isOnboardingExemptPath("/dashboard"), false);
 });
 
 test("maintenance routing excludes critical routes and prevents loops", () => {
@@ -172,7 +177,7 @@ test("post-login routing verifies roles server-side during maintenance", () => {
   const continuation = readFileSync(new URL("../app/(public)/auth/continue/route.ts", import.meta.url), "utf8");
   const callback = readFileSync(new URL("../app/(public)/auth/callback/route.ts", import.meta.url), "utf8");
   const login = readFileSync(new URL("../components/auth/LoginForm.tsx", import.meta.url), "utf8");
-  assert.match(continuation, /select\("role,account_status"\)/);
+  assert.match(continuation, /select\("role,account_status,onboarding_required,onboarding_completed"\)/);
   assert.match(continuation, /isAdminRole\(profile\?\.role\)/);
   assert.match(continuation, /"\/admin\/maintenance"/);
   assert.match(continuation, /allow_authenticated_users/);
@@ -211,12 +216,12 @@ test("onboarding keeps accessible selected states and responsive navigation", ()
   const navigation = readFileSync(new URL("../components/AppNavClient.tsx", import.meta.url), "utf8");
   const brandLogo = readFileSync(new URL("../components/BrandLogo.tsx", import.meta.url), "utf8");
   const practice = readFileSync(new URL("../components/PracticeEngine.tsx", import.meta.url), "utf8");
-  assert.match(onboarding, /role=\{multi \? "group" : "radiogroup"\}/);
-  assert.match(onboarding, /aria-checked=\{isSelected\}/);
-  assert.match(onboarding, /bg-\[#dff1ff\] text-\[#06172f\]/);
+  assert.match(onboarding, /role="radiogroup"/);
+  assert.match(onboarding, /aria-checked=\{selected\}/);
+  assert.match(onboarding, /aria-pressed=\{interests\.includes/);
   assert.match(onboarding, /md:grid-cols-2/);
   assert.match(onboarding, /focus-visible:ring/);
-  assert.match(onboarding, /disabled:text-slate-200/);
+  assert.match(onboarding, /disabled:opacity-50/);
   assert.match(navigation, /aria-controls="mobile-navigation"/);
   assert.match(navigation, /aria-expanded=\{menuOpen\}/);
   assert.match(navigation, /lg:hidden/);

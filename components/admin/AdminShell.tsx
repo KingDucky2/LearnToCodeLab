@@ -8,6 +8,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { AccountAvatar } from "@/components/AccountAvatar";
 import type { AccountIdentity } from "@/lib/identity";
 import { AdminQuickActions } from "@/components/admin/AdminQuickActions";
+import { RoleBadge } from "@/components/RoleBadge";
 
 type AdminNavigationItem = { href: string; label: string; icon: typeof LayoutDashboard; exact: boolean };
 
@@ -47,7 +48,7 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { id
             <nav className="hidden items-center gap-2 text-sm text-subtle sm:flex" aria-label="Breadcrumb"><Link href="/admin" className="rounded hover:text-foreground">Admin</Link>{current && current.href !== "/admin" ? <><ChevronRight className="h-4 w-4" /><span className="truncate font-bold text-foreground">{current.label}</span></> : null}</nav>
           </div>
           <details className="group relative">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-bold [&::-webkit-details-marker]:hidden"><AccountAvatar identity={user.identity} size="sm" decorative /><span className="hidden max-w-40 truncate sm:block">{user.identity.label}</span><span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black uppercase text-blue-900">{user.role}</span></summary>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-bold [&::-webkit-details-marker]:hidden"><AccountAvatar identity={user.identity} size="sm" decorative /><span className="hidden max-w-40 truncate sm:block">{user.identity.label}</span><RoleBadge role={user.role} /></summary>
             <div className="absolute right-0 mt-2 w-72 rounded-lg border border-border bg-surface-elevated p-3 shadow-lab"><p className="truncate font-black text-foreground">{user.identity.label}</p><p className="truncate text-xs text-subtle">{user.identity.email}</p><form action="/auth/sign-out" method="post" className="mt-3 border-t border-border pt-2"><button className="btn-ghost w-full justify-start" type="submit"><LogOut className="h-4 w-4" />Sign out</button></form></div>
           </details>
         </header>

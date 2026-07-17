@@ -119,7 +119,8 @@ test("dialog, tabs, polling, and avatar surfaces contain the hardened behavior",
   assert.match(experience, /document\.visibilityState !== "visible"/);
   assert.match(avatar, /identity\.avatarUrls\.find/);
   assert.match(avatar, /onError=\{\(\) => setFailedUrls/);
-  assert.match(profileForm, /normalizeAvatarUrl\(avatarUrl\)/);
+  assert.doesNotMatch(profileForm, /Avatar URL/);
+  assert.match(profileForm, /AvatarPicker/);
   assert.match(profileForm, /router\.refresh\(\)/);
   for (const path of ["../components/AppNavClient.tsx", "../components/admin/AdminShell.tsx", "../app/(public)/dashboard/page.tsx", "../app/(public)/profile/page.tsx", "../components/settings/AccountSettingsForm.tsx"]) {
     assert.match(readFileSync(new URL(path, import.meta.url), "utf8"), /AccountAvatar/);

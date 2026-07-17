@@ -1,3 +1,5 @@
+import { validateProfileUsername } from "./profile-validation.ts";
+
 export const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-password", "/auth/sign-in", "/auth/create-account"] as const;
 
 export const protectedRoutes = ["/dashboard", "/profile", "/settings", "/onboarding", "/admin", "/my-learning", "/projects"] as const;
@@ -16,6 +18,17 @@ export function isAuthPath(pathname: string) {
 
 export function isSuspendedAccountAllowedPath(pathname: string) {
   return suspendedAccountAllowedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+export function isOnboardingExemptPath(pathname: string) {
+  return pathname === "/onboarding"
+    || pathname === "/privacy"
+    || pathname === "/terms"
+    || pathname === "/settings/privacy"
+    || pathname === "/api/account/delete"
+    || pathname === "/auth/sign-out"
+    || pathname === "/auth/callback"
+    || pathname === "/auth/continue";
 }
 
 export function sanitizeReturnPath(value: string | null | undefined, fallback = fallbackPath) {
@@ -80,17 +93,13 @@ export function isStrongEnoughPassword(password: string) {
   return guidance.length && guidance.letter && guidance.number;
 }
 
-const reservedUsernames = new Set(["admin", "api", "auth", "billing", "dashboard", "help", "login", "logout", "privacy", "settings", "signup", "support", "terms"]);
-
 export function normalizeUsername(username: string) {
-  return username.trim().toLowerCase();
+  return username.trim();
 }
 
 export function validateUsername(username: string) {
-  const normalized = normalizeUsername(username);
-  if (!normalized) return { valid: true, normalized };
-  if (normalized.length < 3 || normalized.length > 24) return { valid: false, normalized, message: "Username must be 3 to 24 characters." };
-  if (!/^[a-z0-9_]+$/.test(normalized)) return { valid: false, normalized, message: "Use lowercase letters, numbers, and underscores only." };
-  if (reservedUsernames.has(normalized)) return { valid: false, normalized, message: "That username is reserved." };
-  return { valid: true, normalized };
+  const result = validateProfileUsername(username, true);
+  return result.valid
+    ? { valid: true, normalized: result.display }
+    : { valid: false, normalized: result.display, message: result.message };
 }

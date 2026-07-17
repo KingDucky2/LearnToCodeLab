@@ -201,9 +201,13 @@ The admin support and user-management system requires:
 
 ```
 supabase/migrations/202607160001_admin_support_system.sql
+supabase/migrations/202607170001_support_ticket_production_polish.sql
+supabase/migrations/202607170002_profile_onboarding_polish.sql
 ```
 
-Apply it before exercising `/admin/users`, `/admin/support`, `/admin/activity`, or learner `/support` routes. Confirm RLS with separate learner and staff sessions. Existing profiles default to active; no destructive backfill is performed.
+Apply these migrations in order before exercising `/admin/users`, `/admin/support`, `/admin/activity`, learner `/support`, or the new profile and onboarding flows. Confirm RLS with separate learner and staff sessions. Existing profiles default to active; no destructive backfill is performed.
+
+The profile/onboarding migration must be applied before deploying its matching application code. Verify that the `avatars` Storage bucket is public for reads, limited to the declared image MIME types and 5 MB, and that authenticated users can insert, replace, or delete objects only inside their own user-ID folder. Confirm that existing profiles retain access while a newly created email or Google account is redirected to `/onboarding`.
 
 ---
 
