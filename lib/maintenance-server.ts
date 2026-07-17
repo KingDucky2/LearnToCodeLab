@@ -1,7 +1,7 @@
 import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { defaultMaintenanceSettings, isAdminRole, resolveMaintenanceOverride, type MaintenanceOverride, type MaintenanceState } from "@/lib/maintenance";
+import { defaultMaintenanceSettings, getAutomaticMaintenanceStage, isAdminRole, resolveMaintenanceOverride, type MaintenanceOverride, type MaintenanceState } from "@/lib/maintenance";
 
 const publicStateCache = new Map<string, { expiresAt: number; state: MaintenanceState }>();
 export const maintenanceStateCacheTtlMs = 1_000;
@@ -64,6 +64,9 @@ export async function getPublicMaintenanceState({ forceRefresh = false }: { forc
       emergency: false,
       available: true
     };
+    if (state.settings.maintenance_enabled && state.settings.automatic_messages) {
+      state.settings.maintenance_status = getAutomaticMaintenanceStage(state.settings.progress_percent);
+    }
     publicStateCache.set(cacheKey, { expiresAt: Date.now() + maintenanceStateCacheTtlMs, state });
     return state;
   } catch {
@@ -84,7 +87,7 @@ export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   // onboarding expansion. OAuth metadata is intentionally never consulted.
   if (error) {
     console.error("Unable to load the expanded current-user profile; retrying stable fields.", { code: error.code ?? "unknown" });
-    const fallback = await db.from("profiles").select("role,display_name,avatar_url,preferred_language,account_status").eq("id", user.id).maybeSingle();
+    const fallback = await db.from("profiles").select("role,display_name,username,avatar_url,preferred_language,account_status").eq("id", user.id).maybeSingle();
     data = fallback.data;
     error = fallback.error;
   }

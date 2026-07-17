@@ -19,7 +19,7 @@ export function AvatarPicker({ identity, hasCustomAvatar }: { identity: AccountI
   function choose(next: File | undefined) {
     setMessage(null);
     if (!next) return setFile(null);
-    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(next.type)) return setMessage({ type: "error", text: "Use a JPEG, PNG, WebP, or GIF image." });
+    if (!["image/jpeg", "image/png", "image/webp"].includes(next.type)) return setMessage({ type: "error", text: "Use a JPEG, PNG, or WebP image." });
     if (next.size > 5 * 1024 * 1024) return setMessage({ type: "error", text: "Avatar images must be 5 MB or smaller." });
     setFile(next);
   }
@@ -54,7 +54,7 @@ export function AvatarPicker({ identity, hasCustomAvatar }: { identity: AccountI
       <AccountAvatar identity={previewIdentity} size="lg" />
       <div className="min-w-0 flex-1"><h3 id="avatar-picker-title" className="font-black text-foreground">Profile picture</h3><p className="mt-1 text-sm text-muted">Upload a square image up to 5 MB. Other shapes are displayed with a centered square crop.</p>{identity.googleConnected && !hasCustomAvatar ? <p className="mt-1 text-xs font-bold text-primary">Your Google avatar is currently being used.</p> : null}</div>
     </div>
-    <div className="mt-4 flex flex-wrap gap-2"><label className="btn-outline cursor-pointer"><ImageUp className="h-4 w-4" />{hasCustomAvatar ? "Choose replacement" : "Choose image"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => choose(event.target.files?.[0])} disabled={busy} /></label>{file ? <button type="button" className="btn-primary" onClick={upload} disabled={busy}>{busy ? "Uploading…" : "Save avatar"}</button> : null}{hasCustomAvatar ? <button type="button" className="btn-outline text-red-700" onClick={remove} disabled={busy}><Trash2 className="h-4 w-4" />Remove custom avatar</button> : null}{file ? <button type="button" className="btn-ghost" onClick={() => setFile(null)} disabled={busy}>Discard preview</button> : null}</div>
+    <div className="mt-4 flex flex-wrap gap-2"><label className="btn-outline cursor-pointer"><ImageUp className="h-4 w-4" />{hasCustomAvatar ? "Choose replacement" : "Choose image"}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => choose(event.target.files?.[0])} disabled={busy} /></label>{file ? <button type="button" className="btn-primary" onClick={upload} disabled={busy}>{busy ? "Uploading…" : "Save avatar"}</button> : null}{hasCustomAvatar ? <button type="button" className="btn-outline text-danger" onClick={remove} disabled={busy}><Trash2 className="h-4 w-4" />Remove custom avatar</button> : null}{file ? <button type="button" className="btn-ghost" onClick={() => setFile(null)} disabled={busy}>Discard preview</button> : null}</div>
     {message ? <div className="mt-3"><AuthMessage type={message.type}>{message.text}</AuthMessage></div> : null}
   </section>;
 }

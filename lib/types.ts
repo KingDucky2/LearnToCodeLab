@@ -19,6 +19,7 @@ export type Database = {
           preferred_language: string | null;
           experience_level: string | null;
           learning_goal: string | null;
+          biggest_learning_struggle: string | null;
           account_status: "active" | "suspended";
           account_status_reason: string | null;
           account_status_changed_at: string | null;
@@ -42,6 +43,7 @@ export type Database = {
           preferred_language?: string | null;
           experience_level?: string | null;
           learning_goal?: string | null;
+          biggest_learning_struggle?: string | null;
           account_status?: "active" | "suspended";
           account_status_reason?: string | null;
           account_status_changed_at?: string | null;
@@ -124,6 +126,13 @@ export type Database = {
           auto_refresh_interval_seconds: number;
           support_message: string | null;
           contact_email: string | null;
+          preset_key: string | null;
+          scheduled_start_at: string | null;
+          scheduled_end_at: string | null;
+          schedule_event_id: string | null;
+          automatic_progress: boolean;
+          automatic_messages: boolean;
+          automatic_updates: boolean;
           created_at: string;
           updated_at: string;
           updated_by: string | null;
@@ -190,6 +199,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      maintenance_history: {
+        Row: { id: string; event_id: string; action: string; actor_id: string | null; actor_kind: "staff" | "automation"; preset_key: string | null; title: string; message: string; scheduled_start_at: string | null; scheduled_end_at: string | null; maintenance_enabled: boolean; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["maintenance_history"]["Row"], "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
       user_staff_notes: {
         Row: { id: string; user_id: string; author_id: string | null; body: string; created_at: string };
         Insert: { id?: string; user_id: string; author_id: string; body: string; created_at?: string };
@@ -215,6 +230,9 @@ export type Database = {
       admin_set_support_ticket_status: { Args: { target_ticket_id: string; next_status: string }; Returns: undefined };
       admin_set_support_ticket_archived: { Args: { target_ticket_id: string; should_archive: boolean }; Returns: undefined };
       complete_profile_onboarding: { Args: { profile_display_name: string; profile_username: string; profile_experience: string; primary_goal: string; interests: Json; starting_language: string; minutes_per_day: number; preferred_format: string }; Returns: undefined };
+      save_learner_profile: { Args: { profile_display_name: string; profile_username: string; profile_bio: string; profile_experience: string; primary_goal: string; interests: Json; starting_language: string; minutes_per_day: number; preferred_format: string; learning_struggle: string }; Returns: undefined };
+      save_maintenance_configuration_v2: { Args: { settings_payload: Json; tasks_payload: Json; updates_payload: Json }; Returns: undefined };
+      process_due_maintenance_automation: { Args: Record<PropertyKey, never>; Returns: Json };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

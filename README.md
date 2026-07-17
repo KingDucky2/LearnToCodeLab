@@ -80,6 +80,7 @@ supabase/migrations/202607130001_maintenance_system.sql
 supabase/migrations/202607160001_admin_support_system.sql
 supabase/migrations/202607170001_support_ticket_production_polish.sql
 supabase/migrations/202607170002_profile_onboarding_polish.sql
+supabase/migrations/202607170003_profile_ui_maintenance_stabilization.sql
 ```
 
 The profile trigger creates a private one-to-one `profiles` row from Supabase auth metadata. The settings migration persists display preferences and tightens the insert/update ownership policies. Row Level Security only allows authenticated users to access their own private account data.
@@ -92,6 +93,8 @@ Apply `supabase/migrations/202607160001_admin_support_system.sql` before enablin
 
 Avatar uploads, case-insensitive usernames, safe display names, and required onboarding for newly created accounts require `supabase/migrations/202607170002_profile_onboarding_polish.sql`. The migration creates the public `avatars` bucket with authenticated per-user write policies. Existing accounts are not forced through onboarding and instead receive a profile-completion prompt when information is missing.
 
+Apply `supabase/migrations/202607170003_profile_ui_maintenance_stabilization.sql` immediately afterward. It makes profile edits atomic, narrows avatars to JPEG/PNG/WebP, adds the learner-struggle field, and adds maintenance scheduling/history. Set the server-only `CRON_SECRET` in Vercel; `vercel.json` invokes `/api/cron/maintenance` once per minute. Scheduling remains unavailable until both the migration and cron environment variable are active. Vercel plan limits may require a less frequent schedule or an external authenticated scheduler.
+
 ## Maintenance Control System
 
 Normal maintenance is stored in Supabase and can be changed without deploying:
@@ -103,7 +106,7 @@ Normal maintenance is stored in Supabase and can be changed without deploying:
 /maintenance
 ```
 
-The editor controls public copy, progress, return time, task statuses, updates, personalization, login availability, user bypass, refresh timing, and support details. Enabling maintenance requires confirmation. Public visitors receive a temporary `307` redirect with a `Retry-After` header, while required recovery and authentication routes remain available.
+Simple Mode controls the preset, public copy, estimated completion, preview, and activation. Advanced Mode contains access, progress, scheduling, tasks, updates, recovery, and append-only history. Automatic progress is capped at 90% until completion, milestone updates are deduplicated, and scheduled actions are tied to the current event token. Enabling maintenance requires confirmation. Public visitors receive a temporary `307` redirect with a `Retry-After` header, while required recovery and authentication routes remain available.
 
 Assign the first owner in the Supabase SQL editor after replacing the example email:
 

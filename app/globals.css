@@ -67,12 +67,20 @@ body {
   background: linear-gradient(180deg, var(--background) 0%, color-mix(in srgb, var(--background) 92%, var(--surface)) 100%);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   line-height: 1.6;
+  overflow-x: clip;
 }
 
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button { touch-action: manipulation; }
+img, svg, video { max-width: 100%; }
+
+/* Predictable stacking: page content < navigation < menus < modal overlays < toasts. */
+.layer-nav { z-index: 30; }
+.layer-dropdown { z-index: 40; }
+.layer-overlay { z-index: 50; }
+.layer-toast { z-index: 60; }
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 select,
@@ -162,6 +170,18 @@ input[type="radio"] {
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   box-shadow: var(--shadow-surface);
   backdrop-filter: blur(16px);
+}
+
+@media (max-width: 374px) {
+  .surface-card, .surface-panel { padding: 1rem; }
+  .btn, .btn-primary, .btn-secondary, .btn-outline, .btn-ghost, .btn-danger { padding-inline: .75rem; }
+  .type-page { font-size: 1.75rem; }
+  .type-section { font-size: 1.35rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
 
 .dark-panel {

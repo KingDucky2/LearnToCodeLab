@@ -14,10 +14,17 @@ export default async function ProfilePage() {
   if (!session.user || !session.supabase) redirect("/login?next=/profile");
 
   const db = session.supabase as any;
-  const [{ data: profile }, { data: preferences }] = await Promise.all([
-    db.from("profiles").select("display_name,username,avatar_url,avatar_source,bio,preferred_language,experience_level,learning_goal,created_at,onboarding_completed").eq("id", session.user.id).maybeSingle(),
-    db.from("learning_preferences").select("daily_minutes,learning_format").eq("user_id", session.user.id).maybeSingle()
+  const [expandedProfile, expandedPreferences, goalsResult] = await Promise.all([
+    db.from("profiles").select("display_name,username,avatar_url,avatar_source,bio,preferred_language,experience_level,learning_goal,biggest_learning_struggle,created_at,onboarding_completed").eq("id", session.user.id).maybeSingle(),
+    db.from("learning_preferences").select("daily_minutes,learning_format").eq("user_id", session.user.id).maybeSingle(),
+    db.from("learning_goals").select("goal").eq("user_id", session.user.id),
   ]);
+  const profileResult = expandedProfile.error
+    ? await db.from("profiles").select("display_name,username,avatar_url,bio,preferred_language,experience_level,learning_goal,created_at,onboarding_completed").eq("id", session.user.id).maybeSingle()
+    : expandedProfile;
+  const profile = profileResult.data;
+  const preferences = expandedPreferences.error ? null : expandedPreferences.data;
+  const goals = goalsResult.data ?? [];
   const identity = resolveAccountIdentity(session.user, session.profile);
 
   return (
@@ -54,13 +61,15 @@ export default async function ProfilePage() {
             display_name: profile?.display_name ?? null,
             username: profile?.username ?? null,
             avatar_url: profile?.avatar_url ?? null,
-            avatar_source: profile?.avatar_source ?? "provider",
+            avatar_source: profile?.avatar_source ?? (profile?.avatar_url?.includes("/storage/v1/object/public/avatars/") ? "custom" : "provider"),
             bio: profile?.bio ?? null,
             preferred_language: session.profile?.preferred_language ?? null,
             experience_level: profile?.experience_level ?? null,
-            learning_goal: profile?.learning_goal ?? null
+            learning_goal: profile?.learning_goal ?? null,
+            biggest_learning_struggle: profile?.biggest_learning_struggle ?? null,
           }}
           preferences={preferences}
+          interests={(goals ?? []).map((item: { goal: string }) => item.goal).filter((goal: string) => goal !== profile?.learning_goal)}
         />
       </div>
     </PageShell>
