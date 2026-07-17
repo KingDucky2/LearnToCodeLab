@@ -16,5 +16,5 @@ export default async function AdminMaintenancePage() {
   ]);
   let updater: string | null = null;
   if (settings?.updated_by) { const { data } = await db.from("profiles").select("display_name,username").eq("id", settings.updated_by).maybeSingle(); updater = data?.display_name ?? data?.username ?? null; }
-  return <><AdminPageHeader title="Maintenance" description="Control public messaging, access, progress, work items, updates, and the saved visitor preview." /><MaintenanceAdminForm initialSettings={{ ...defaultMaintenanceSettings, ...(settings ?? {}) }} initialTasks={tasks ?? []} initialUpdates={updates ?? []} lastUpdatedBy={updater} /></>;
+  return <><AdminPageHeader title="Maintenance" description="Publish a clear visitor notice in a few steps, with advanced controls available when you need them." /><MaintenanceAdminForm initialSettings={{ ...defaultMaintenanceSettings, ...(settings ?? {}) }} initialTasks={tasks ?? []} initialUpdates={updates ?? []} lastUpdatedBy={updater} /></>;
 }

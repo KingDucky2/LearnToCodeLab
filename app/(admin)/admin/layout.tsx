@@ -8,5 +8,5 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!admin.user) redirect("/staff/sign-in?next=/admin");
   if (!admin.authorized) redirect("/dashboard");
   const identity = resolveAccountIdentity(admin.user, admin.profile);
-  return <AdminShell user={{ identity, role: admin.role || "admin" }}>{children}</AdminShell>;
+  return <AdminShell user={{ id: admin.user.id, identity, role: admin.role || "admin" }}>{children}</AdminShell>;
 }

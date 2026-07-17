@@ -102,7 +102,7 @@ test("admin recovery, layout authorization, and child pages use consistent bound
   assert.doesNotMatch(previewPage, /redirect\(/);
 });
 
-test("dialog, tabs, polling, and avatar surfaces contain the hardened behavior", () => {
+test("dialog, progressive maintenance controls, polling, and avatar surfaces contain the hardened behavior", () => {
   const editor = readFileSync(new URL("../components/admin/MaintenanceAdminForm.tsx", import.meta.url), "utf8");
   const experience = readFileSync(new URL("../components/maintenance/MaintenanceExperience.tsx", import.meta.url), "utf8");
   const avatar = readFileSync(new URL("../components/AccountAvatar.tsx", import.meta.url), "utf8");
@@ -111,8 +111,12 @@ test("dialog, tabs, polling, and avatar surfaces contain the hardened behavior",
   assert.match(editor, /event\.key === "Escape" && !busy/);
   assert.match(editor, /event\.key !== "Tab"/);
   assert.match(editor, /document\.body\.style\.overflow = "hidden"/);
-  assert.match(editor, /ArrowLeft.*ArrowRight.*Home.*End/);
-  assert.match(editor, /tabIndex=\{activeTab === tab\.id \? 0 : -1\}/);
+  assert.match(editor, /aria-expanded=\{advancedOpen\}/);
+  assert.match(editor, /advancedOpen \? \(/);
+  assert.match(editor, /setAdvancedOpen\(isAdvanced\)/);
+  assert.match(editor, /setConfirmation\(null\)[\s\S]*Add a title and short message/);
+  assert.match(experience, /maintenanceIcons/);
+  assert.match(experience, /status=\{settings\.maintenance_status\}/);
   assert.match(experience, /inFlight/);
   assert.match(experience, /AbortController/);
   assert.match(experience, /controller\?\.abort\(\)/);

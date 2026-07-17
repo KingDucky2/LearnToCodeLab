@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Activity, ChevronRight, ExternalLink, LayoutDashboard, LifeBuoy, LogOut, Menu, Users, Wrench, X } from "lucide-react";
+import { Activity, ChevronRight, ExternalLink, LayoutDashboard, LifeBuoy, LogOut, Menu, Settings2, Sparkles, Users, Wrench, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { AccountAvatar } from "@/components/AccountAvatar";
 import type { AccountIdentity } from "@/lib/identity";
@@ -20,14 +20,53 @@ const navigation: AdminNavigationItem[] = [
   { href: "/admin/activity", label: "Activity", icon: Activity, exact: false }
 ];
 
-export function AdminShell({ children, user }: { children: ReactNode; user: { identity: AccountIdentity; role: string } }) {
+export type AdminInterfaceMode = "beginner" | "advanced";
+
+type AdminInterfaceModeContextValue = {
+  mode: AdminInterfaceMode;
+  isAdvanced: boolean;
+  setMode: (mode: AdminInterfaceMode) => void;
+};
+
+const AdminInterfaceModeContext = createContext<AdminInterfaceModeContextValue | null>(null);
+
+export function useAdminInterfaceMode() {
+  const value = useContext(AdminInterfaceModeContext);
+  if (!value) throw new Error("useAdminInterfaceMode must be used inside AdminShell");
+  return value;
+}
+
+function AdminModeSelector({ mode, onChange }: { mode: AdminInterfaceMode; onChange: (mode: AdminInterfaceMode) => void }) {
+  return <div className="rounded-lg border border-border bg-surface-secondary p-1" role="group" aria-label="Administration interface mode">
+    <button type="button" className={`min-h-9 rounded-md px-3 text-xs font-black transition-colors ${mode === "beginner" ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground"}`} aria-pressed={mode === "beginner"} onClick={() => onChange("beginner")}><Sparkles className="mr-1.5 inline h-3.5 w-3.5" aria-hidden="true" />Beginner</button>
+    <button type="button" className={`min-h-9 rounded-md px-3 text-xs font-black transition-colors ${mode === "advanced" ? "bg-surface text-foreground shadow-sm" : "text-muted hover:text-foreground"}`} aria-pressed={mode === "advanced"} onClick={() => onChange("advanced")}><Settings2 className="mr-1.5 inline h-3.5 w-3.5" aria-hidden="true" />Advanced</button>
+  </div>;
+}
+
+export function AdminShell({ children, user }: { children: ReactNode; user: { id: string; identity: AccountIdentity; role: string } }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mode, setModeState] = useState<AdminInterfaceMode>("beginner");
+  const storageKey = `ltcl:admin-interface-mode:${user.id}`;
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      setModeState(saved === "advanced" ? "advanced" : "beginner");
+    } catch {
+      setModeState("beginner");
+    }
+  }, [storageKey]);
+  const setMode = useCallback((nextMode: AdminInterfaceMode) => {
+    setModeState(nextMode);
+    try { window.localStorage.setItem(storageKey, nextMode); } catch { /* Browser storage can be unavailable without blocking the admin UI. */ }
+  }, [storageKey]);
+  const modeContext = useMemo(() => ({ mode, isAdvanced: mode === "advanced", setMode }), [mode, setMode]);
   useEffect(() => setOpen(false), [pathname]);
   const current = [...navigation].reverse().find((item) => item.exact ? pathname === item.href : pathname.startsWith(item.href));
 
   return (
-    <div data-admin-page className="min-h-screen bg-background lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+    <AdminInterfaceModeContext.Provider value={modeContext}>
+    <div data-admin-page data-admin-mode={mode} className="min-h-screen bg-background lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
       <button type="button" aria-label="Close admin navigation" className={`fixed inset-0 z-40 bg-slate-950/55 lg:hidden ${open ? "block" : "hidden"}`} onClick={() => setOpen(false)} />
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-[min(300px,88vw)] flex-col border-r border-slate-700 bg-lab-navy text-white transition-transform lg:sticky lg:top-0 lg:h-screen lg:w-auto lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-20 items-center justify-between gap-3 border-b border-white/10 px-5">
@@ -47,15 +86,22 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { id
             <button type="button" className="btn-icon btn-outline lg:hidden" aria-label="Open admin navigation" aria-expanded={open} onClick={() => setOpen(true)}><Menu className="h-5 w-5" /></button>
             <nav className="hidden items-center gap-2 text-sm text-subtle sm:flex" aria-label="Breadcrumb"><Link href="/admin" className="rounded hover:text-foreground">Admin</Link>{current && current.href !== "/admin" ? <><ChevronRight className="h-4 w-4" /><span className="truncate font-bold text-foreground">{current.label}</span></> : null}</nav>
           </div>
+          <div className="flex items-center gap-2">
+          <div className="hidden lg:block"><AdminModeSelector mode={mode} onChange={setMode} /></div>
           <details className="group relative">
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-bold [&::-webkit-details-marker]:hidden"><AccountAvatar identity={user.identity} size="sm" decorative /><span className="hidden max-w-40 truncate sm:block">{user.identity.label}</span><RoleBadge role={user.role} /></summary>
             <div className="absolute right-0 mt-2 w-72 rounded-lg border border-border bg-surface-elevated p-3 shadow-lab"><p className="truncate font-black text-foreground">{user.identity.label}</p><p className="truncate text-xs text-subtle">{user.identity.email}</p><form action="/auth/sign-out" method="post" className="mt-3 border-t border-border pt-2"><button className="btn-ghost w-full justify-start" type="submit"><LogOut className="h-4 w-4" />Sign out</button></form></div>
           </details>
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="mb-5 lg:hidden"><AdminModeSelector mode={mode} onChange={setMode} /></div>
+          {children}
+        </main>
         <AdminQuickActions />
       </div>
     </div>
+    </AdminInterfaceModeContext.Provider>
   );
 }
 

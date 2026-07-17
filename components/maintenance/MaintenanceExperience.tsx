@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { AlertTriangle, Check, Clock3, Laptop, RefreshCw, ShieldCheck, Smartphone, Tablet, Wrench } from "lucide-react";
+import { AlertTriangle, Check, Clock3, Database, Laptop, RefreshCw, Server, ShieldCheck, Smartphone, Tablet, Wrench, Zap } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { getCountdownRemaining, safeMaintenanceReturnPath, type MaintenanceState, type MaintenanceTask } from "@/lib/maintenance";
 
@@ -19,6 +19,15 @@ const taskMeta = {
   in_progress: { label: "In progress", icon: RefreshCw, className: "bg-blue-100 text-blue-800" },
   completed: { label: "Completed", icon: Check, className: "bg-emerald-100 text-emerald-800" },
   delayed: { label: "Paused", icon: AlertTriangle, className: "bg-amber-100 text-amber-900" }
+} as const;
+
+const maintenanceIcons = {
+  restarting: RefreshCw,
+  scheduled: Clock3,
+  emergency: AlertTriangle,
+  database: Database,
+  api: Server,
+  upgrading: Zap,
 } as const;
 
 const updateDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -100,7 +109,7 @@ export function MaintenanceExperience({ state, returnTo, profile, preview = fals
     <main data-maintenance-page className="maintenance-page min-h-screen px-4 py-5 sm:px-6 sm:py-8">
       {preview ? <div className="mx-auto mb-4 flex max-w-7xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950"><div><strong className="block">Admin Preview</strong><span className="text-xs">Saved data only. Unsaved editor changes are not reflected.</span></div><div className="flex items-center gap-2" role="group" aria-label="Preview viewport"><PreviewButton label="Desktop" active={previewWidth === "desktop"} onClick={() => setPreviewWidth("desktop")}><Laptop /></PreviewButton><PreviewButton label="Tablet" active={previewWidth === "tablet"} onClick={() => setPreviewWidth("tablet")}><Tablet /></PreviewButton><PreviewButton label="Mobile" active={previewWidth === "mobile"} onClick={() => setPreviewWidth("mobile")}><Smartphone /></PreviewButton><Link href="/admin/maintenance" className="btn-outline bg-white">Return to admin</Link></div></div> : null}
       <div style={preview && previewWidth !== "desktop" ? { gridTemplateColumns: "1fr" } : undefined} className={`mx-auto grid min-h-[calc(100vh-2.5rem)] overflow-hidden border border-border bg-surface shadow-lab transition-[max-width] ${previewWidth === "mobile" ? "max-w-[390px]" : previewWidth === "tablet" ? "max-w-3xl" : "max-w-7xl"} lg:grid-cols-[minmax(260px,.58fr)_minmax(0,1.42fr)]`}>
-        <MaintenanceHero emergency={state.emergency} preview={preview} />
+        <MaintenanceHero emergency={state.emergency} preview={preview} status={settings.maintenance_status} />
         <section className="maintenance-content flex flex-col p-6 sm:p-9 lg:p-12" aria-labelledby="maintenance-title">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <MaintenanceStatusBadge text={settings.maintenance_badge_text} />
@@ -169,14 +178,15 @@ export function MaintenanceAccessActions({ allowLearnerLogin, returnTo }: { allo
   );
 }
 
-export function MaintenanceHero({ emergency, preview }: { emergency: boolean; preview: boolean }) {
+export function MaintenanceHero({ emergency, preview, status }: { emergency: boolean; preview: boolean; status: string }) {
+  const StatusIcon = maintenanceIcons[status as keyof typeof maintenanceIcons] ?? Wrench;
   return (
     <aside className="maintenance-hero relative flex min-h-64 flex-col justify-between overflow-hidden bg-lab-navy p-6 text-white sm:p-8 lg:min-h-full" aria-label="LearnToCode Lab maintenance">
       <div className="relative z-10 flex items-center gap-3 font-black"><Image src="/learntocodelab-logo-dark.png" width={52} height={52} alt="" className="h-[52px] w-[52px] rounded-lg object-cover" /><span>LearnToCode Lab</span></div>
       <div className="relative z-10 my-7 grid place-items-center">
         <div className="maintenance-logo-wrap grid aspect-square w-[min(58%,176px)] place-items-center rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur"><Image src="/learntocodelab-logo-dark.png" width={176} height={176} alt="LearnToCode Lab" className="h-full w-full rounded-lg object-cover" priority /></div>
       </div>
-      <div className="relative z-10 flex items-center gap-2 text-sm font-bold text-blue-100"><Wrench className="h-4 w-4" aria-hidden="true" />{emergency ? "Emergency maintenance fallback" : preview ? "Previewing saved maintenance content" : "Improving the learning platform"}</div>
+      <div className="relative z-10 flex items-center gap-2 text-sm font-bold text-blue-100"><StatusIcon className="h-4 w-4" aria-hidden="true" />{emergency ? "Emergency maintenance fallback" : preview ? "Previewing saved maintenance content" : "Improving the learning platform"}</div>
     </aside>
   );
 }

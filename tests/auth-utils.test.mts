@@ -146,8 +146,13 @@ test("maintenance editor uses explicit creation, validation, confirmation, and d
   assert.match(editor, /Delete this \$\{kind\}/);
   assert.match(editor, /Move task up/);
   assert.match(editor, /Move task down/);
-  assert.match(editor, /role="tablist"/);
-  assert.match(editor, /aria-selected=\{activeTab === tab.id\}/);
+  assert.doesNotMatch(editor, /role="tablist"/);
+  assert.match(editor, /maintenancePresets\.map/);
+  assert.match(editor, /Everything else is optional/);
+  assert.match(editor, /body: JSON\.stringify\(\{ settings, tasks, updates \}\)/);
+  assert.match(editor, /tasks\.some\(\(task\) => !task\.title\.trim\(\)\)/);
+  assert.match(editor, /updates\.some\(\(update\) => !update\.title\.trim\(\) \|\| !update\.message\.trim\(\)\)/);
+  assert.doesNotMatch(editor, /if \(!tasks\.length|if \(!updates\.length/);
 });
 
 test("public maintenance UI handles expiration, local time, empty sections, and hidden-tab polling", () => {
