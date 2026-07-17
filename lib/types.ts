@@ -153,8 +153,8 @@ export type Database = {
         Relationships: [];
       };
       support_tickets: {
-        Row: { id: string; ticket_number: number; user_id: string; subject: string; category: string; status: string; priority: string; needs_staff_attention: boolean; page_url: string | null; diagnostics: Json | null; diagnostics_consent: boolean; assigned_to: string | null; created_at: string; updated_at: string; resolved_at: string | null };
-        Insert: { id?: string; user_id: string; subject: string; category: string; status?: string; priority?: string; needs_staff_attention?: boolean; page_url?: string | null; diagnostics?: Json | null; diagnostics_consent?: boolean; assigned_to?: string | null; created_at?: string; updated_at?: string; resolved_at?: string | null };
+        Row: { id: string; ticket_number: number; user_id: string; subject: string; category: string; status: string; priority: string; needs_staff_attention: boolean; page_url: string | null; diagnostics: Json | null; diagnostics_consent: boolean; assigned_to: string | null; created_at: string; updated_at: string; resolved_at: string | null; archived_at: string | null; archived_by: string | null; closed_at: string | null; status_changed_at: string; status_changed_by: string | null };
+        Insert: { id?: string; user_id: string; subject: string; category: string; status?: string; priority?: string; needs_staff_attention?: boolean; page_url?: string | null; diagnostics?: Json | null; diagnostics_consent?: boolean; assigned_to?: string | null; created_at?: string; updated_at?: string; resolved_at?: string | null; archived_at?: string | null; archived_by?: string | null; closed_at?: string | null; status_changed_at?: string; status_changed_by?: string | null };
         Update: Partial<Database["public"]["Tables"]["support_tickets"]["Insert"]>;
         Relationships: [];
       };
@@ -188,6 +188,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      support_ticket_status_history: {
+        Row: { id: string; ticket_id: string; previous_status: string; new_status: string; changed_by: string | null; created_at: string };
+        Insert: { id?: string; ticket_id: string; previous_status: string; new_status: string; changed_by?: string | null; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -198,6 +204,8 @@ export type Database = {
       create_support_ticket: { Args: { ticket_subject: string; ticket_category: string; initial_message: string; related_page?: string | null; include_diagnostics?: boolean; diagnostic_payload?: Json | null }; Returns: string };
       close_own_support_ticket: { Args: { target_ticket_id: string }; Returns: undefined };
       set_user_account_status: { Args: { target_user_id: string; next_status: string; change_reason: string }; Returns: undefined };
+      admin_set_support_ticket_status: { Args: { target_ticket_id: string; next_status: string }; Returns: undefined };
+      admin_set_support_ticket_archived: { Args: { target_ticket_id: string; should_archive: boolean }; Returns: undefined };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

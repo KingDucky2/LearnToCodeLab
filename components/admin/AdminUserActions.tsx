@@ -22,6 +22,8 @@ export function AdminUserActions({ userId, status, manageable, emailConfirmed }:
       const body = await response.json() as { message?: string };
       setMessage({ type: response.ok ? "success" : "error", text: body.message ?? "The request could not be completed." });
       if (response.ok) { setReason(""); router.refresh(); }
+    } catch {
+      setMessage({ type: "error", text: "The request could not be completed. Check your connection and try again." });
     } finally { setBusy(null); }
   }
   if (!manageable) return <p className="text-sm text-muted">Role safeguards prevent account actions on this user.</p>;

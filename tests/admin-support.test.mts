@@ -4,6 +4,7 @@ import test from "node:test";
 import { canManageAccount, canSuspendAccount, normalizeAdminSearch } from "../lib/admin-security.ts";
 import { isSupportStatus, validateSupportMessage, validateSupportTicket } from "../lib/support.ts";
 import { isSameOriginMutation } from "../lib/request-security.ts";
+import { formatLocalDateTime } from "../lib/local-time.ts";
 
 test("account-management rules preserve owner and staff safeguards", () => {
   assert.equal(canManageAccount({ actorId: "owner-1", actorRole: "owner", targetId: "admin-1", targetRole: "admin" }), true);
@@ -87,4 +88,58 @@ test("suspended accounts retain support and recovery access but not protected ro
   assert.match(middleware, /redirectUrl\.pathname = "\/support"/);
   assert.match(maintenance, /"\/api\/support"/);
   assert.match(maintenance, /"\/support"/);
+});
+
+test("support lifecycle migration records status changes and protects destructive actions", () => {
+  const migration = readFileSync(new URL("../supabase/migrations/202607170001_support_ticket_production_polish.sql", import.meta.url), "utf8");
+  assert.match(migration, /support_ticket_status_history/);
+  assert.match(migration, /admin_set_support_ticket_status/);
+  assert.match(migration, /admin_set_support_ticket_archived/);
+  assert.match(migration, /status_changed_at = now\(\)/);
+  assert.match(migration, /on delete cascade/);
+  assert.match(migration, /public\.is_site_admin\(\)/);
+  assert.match(migration, /previous_status, new_status, changed_by/);
+});
+
+test("admin ticket controls expose the full lifecycle and owner-only deletion", () => {
+  const controls = readFileSync(new URL("../components/support/SupportForms.tsx", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../app/api/admin/support/[ticketId]/route.ts", import.meta.url), "utf8");
+  for (const status of ["open", "in_progress", "waiting_on_user", "resolved", "closed"]) assert.match(controls + readFileSync(new URL("../lib/support.ts", import.meta.url), "utf8"), new RegExp(status));
+  assert.match(controls, /Archive ticket/);
+  assert.match(controls, /Restore ticket/);
+  assert.match(controls, /Permanently delete/);
+  assert.match(route, /admin\.role !== "owner"/);
+  assert.match(route, /Archive the ticket before permanently deleting it/);
+  assert.match(route, /\.from\("support_tickets"\)\.delete\(\)/);
+});
+
+test("view user routes to a complete protected account page", () => {
+  const ticket = readFileSync(new URL("../app/(admin)/admin/support/[ticketId]/page.tsx", import.meta.url), "utf8");
+  const user = readFileSync(new URL("../app/(admin)/admin/users/[userId]/page.tsx", import.meta.url), "utf8");
+  const layout = readFileSync(new URL("../app/(admin)/admin/layout.tsx", import.meta.url), "utf8");
+  assert.match(ticket, /href={`\/admin\/users\/\$\{ticket\.user_id\}`}/);
+  for (const label of ["Display name", "Username", "Email", "Role", "Account status", "Authentication providers", "Joined", "Last sign-in", "Support ticket history", "Private staff notes", "Account history"]) assert.match(user, new RegExp(label));
+  assert.match(layout, /requireAdmin/);
+});
+
+test("support surfaces use browser-local timestamps and consistent conversation identities", () => {
+  const now = new Date(2026, 6, 17, 12, 0);
+  assert.equal(formatLocalDateTime(new Date(2026, 6, 17, 0, 52), { now, locale: "en-US" }), "Today at 12:52 AM");
+  assert.equal(formatLocalDateTime(new Date(2026, 6, 16, 9, 15), { now, locale: "en-US" }), "Yesterday at 9:15 AM");
+  assert.match(formatLocalDateTime(new Date(2026, 6, 15, 0, 52), { now, locale: "en-US" }), /Jul 15, 2026, 12:52 AM/);
+  const localTime = readFileSync(new URL("../components/LocalTime.tsx", import.meta.url), "utf8");
+  const messages = readFileSync(new URL("../components/support/SupportMessageCard.tsx", import.meta.url), "utf8");
+  assert.match(localTime, /navigator\.language/);
+  assert.match(messages, /AccountAvatar/);
+  assert.match(messages, /LearnToCodeLab Staff/);
+  assert.match(messages, /identity\.label/);
+});
+
+test("support queue supplies real counts and all requested filters", () => {
+  const queue = readFileSync(new URL("../app/(admin)/admin/support/page.tsx", import.meta.url), "utf8");
+  for (const field of ["status", "category", "priority", "assigned", "archive", "sort"]) assert.match(queue, new RegExp(`name="${field}"`));
+  assert.match(queue, /count: "exact"/);
+  assert.match(queue, /Unassigned/);
+  assert.match(queue, /Newest activity/);
+  assert.match(queue, /Oldest activity/);
 });
