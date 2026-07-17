@@ -1,4 +1,7 @@
 {
   "framework": "nextjs",
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "crons": [
+    { "path": "/api/cron/maintenance", "schedule": "* * * * *" }
+  ]
 }

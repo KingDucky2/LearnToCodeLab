@@ -20,6 +20,13 @@ export type MaintenanceSettings = {
   auto_refresh_interval_seconds: number;
   support_message: string | null;
   contact_email: string | null;
+  preset_key: string | null;
+  scheduled_start_at: string | null;
+  scheduled_end_at: string | null;
+  schedule_event_id: string | null;
+  automatic_progress: boolean;
+  automatic_messages: boolean;
+  automatic_updates: boolean;
   updated_at: string | null;
 };
 
@@ -71,6 +78,13 @@ export const defaultMaintenanceSettings: MaintenanceSettings = {
   auto_refresh_interval_seconds: 60,
   support_message: "Thanks for your patience while we make the lab better.",
   contact_email: null,
+  preset_key: null,
+  scheduled_start_at: null,
+  scheduled_end_at: null,
+  schedule_event_id: null,
+  automatic_progress: false,
+  automatic_messages: false,
+  automatic_updates: false,
   updated_at: null
 };
 
@@ -113,6 +127,7 @@ export function classifyMaintenancePath(pathname: string): MaintenancePathClassi
   const staticAsset = pathname === "/_next" || pathname.startsWith("/_next/") || staticExactPaths.has(pathname) || staticAssetPattern.test(pathname);
   if (staticAsset) return { bypassMaintenance: true, refreshSession: false, staticAsset: true };
   if (pathname === "/api/maintenance/status") return { bypassMaintenance: true, refreshSession: false, staticAsset: false };
+  if (pathname === "/api/cron/maintenance") return { bypassMaintenance: true, refreshSession: false, staticAsset: false };
   if (maintenanceSessionBypassPrefixes.some((prefix) => matchesPrefix(pathname, prefix))) {
     return { bypassMaintenance: true, refreshSession: true, staticAsset: false };
   }
@@ -151,6 +166,13 @@ export function resolveMaintenanceOverride(override: string | null | undefined, 
 
 export function clampProgress(value: number) {
   return Math.min(100, Math.max(0, Math.round(Number.isFinite(value) ? value : 0)));
+}
+
+export function getAutomaticMaintenanceStage(progress: number) {
+  if (progress >= 90) return "Services are preparing to return online";
+  if (progress >= 70) return "Final checks are being completed";
+  if (progress >= 20) return "Maintenance is underway";
+  return "Preparing systems";
 }
 
 export function isMaintenanceTaskStatus(value: string): value is MaintenanceTaskStatus {

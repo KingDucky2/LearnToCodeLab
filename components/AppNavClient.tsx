@@ -32,13 +32,27 @@ export function AppNavClient({ user }: { user: NavUser }) {
     setMenuOpen(false);
     if (accountMenuRef.current) accountMenuRef.current.open = false;
   }, [pathname]);
+  useEffect(() => {
+    const closeAccountMenu = (event: PointerEvent) => {
+      const menu = accountMenuRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !accountMenuRef.current?.open) return;
+      accountMenuRef.current.open = false;
+      accountMenuRef.current.querySelector<HTMLElement>("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", closeAccountMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => { document.removeEventListener("pointerdown", closeAccountMenu); document.removeEventListener("keydown", closeOnEscape); };
+  }, []);
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
   return (
-    <header className="sticky top-2 z-40 mx-auto mt-2 w-[min(1180px,calc(100%_-_16px))] rounded-lg border border-border bg-surface/95 px-3 shadow-surface backdrop-blur sm:top-3 sm:mt-3 sm:w-[min(1180px,calc(100%_-_24px))]">
+    <header className="layer-nav sticky top-2 mx-auto mt-2 w-[min(1180px,calc(100%_-_16px))] rounded-lg border border-border bg-surface/95 px-3 shadow-surface backdrop-blur sm:top-3 sm:mt-3 sm:w-[min(1180px,calc(100%_-_24px))]">
       <div className="flex h-16 items-center justify-between gap-3">
         <Link href="/" aria-label="LearnToCode Lab home" className="flex min-w-0 items-center gap-3 rounded-lg font-black text-foreground focus-visible:outline-none">
           <BrandLogo />
@@ -114,7 +128,7 @@ function AccountMenu({ user, detailsRef }: { user: Exclude<NavUser, null>; detai
         <span className="min-w-0 truncate" title={user.identity.label}>{user.identity.label}</span><RoleBadge role={user.role} />
         <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <div className="absolute right-0 top-[calc(100%+8px)] w-64 rounded-lg border border-border bg-surface-elevated p-2 shadow-lab">
+      <div className="layer-dropdown absolute right-0 top-[calc(100%+8px)] w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface-elevated p-2 shadow-lab">
         <div className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs font-bold text-muted"><span className="overflow-wrap-anywhere">Signed in as {user.identity.label}</span><RoleBadge role={user.role} /></div>
         <nav className="grid gap-1" aria-label="Account navigation">
           {items.map(({ href, label, icon: Icon }) => (

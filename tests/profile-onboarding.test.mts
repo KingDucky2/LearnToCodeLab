@@ -36,7 +36,7 @@ test("staff navigation keeps database roles available when optional profile fiel
   const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
   const navigation = readFileSync(new URL("../components/AppNavClient.tsx", import.meta.url), "utf8");
   assert.match(serverRoles, /retrying stable fields/);
-  assert.match(serverRoles, /select\("role,display_name,avatar_url,preferred_language,account_status"\)/);
+  assert.match(serverRoles, /select\("role,display_name,username,avatar_url,preferred_language,account_status"\)/);
   assert.doesNotMatch(serverRoles, /user_metadata.*role|app_metadata.*role/);
   assert.match(middleware, /retrying authorization fields/);
   assert.match(middleware, /select\("role,account_status"\)/);

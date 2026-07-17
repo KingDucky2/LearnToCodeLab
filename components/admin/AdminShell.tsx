@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Activity, ChevronRight, ExternalLink, LayoutDashboard, LifeBuoy, LogOut, Menu, Settings2, Sparkles, Users, Wrench, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { AccountAvatar } from "@/components/AccountAvatar";
 import type { AccountIdentity } from "@/lib/identity";
@@ -47,6 +47,7 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { id
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [mode, setModeState] = useState<AdminInterfaceMode>("beginner");
+  const accountMenuRef = useRef<HTMLDetailsElement>(null);
   const storageKey = `ltcl:admin-interface-mode:${user.id}`;
   useEffect(() => {
     try {
@@ -62,6 +63,13 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { id
   }, [storageKey]);
   const modeContext = useMemo(() => ({ mode, isAdvanced: mode === "advanced", setMode }), [mode, setMode]);
   useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => { if (accountMenuRef.current) accountMenuRef.current.open = false; }, [pathname]);
+  useEffect(() => {
+    const close = (event: PointerEvent) => { const menu = accountMenuRef.current; if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false; };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape" && accountMenuRef.current?.open) { accountMenuRef.current.open = false; accountMenuRef.current.querySelector<HTMLElement>("summary")?.focus(); } };
+    document.addEventListener("pointerdown", close); document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", escape); };
+  }, []);
   const current = [...navigation].reverse().find((item) => item.exact ? pathname === item.href : pathname.startsWith(item.href));
 
   return (
@@ -88,9 +96,9 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { id
           </div>
           <div className="flex items-center gap-2">
           <div className="hidden lg:block"><AdminModeSelector mode={mode} onChange={setMode} /></div>
-          <details className="group relative">
+          <details ref={accountMenuRef} className="group relative">
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-bold [&::-webkit-details-marker]:hidden"><AccountAvatar identity={user.identity} size="sm" decorative /><span className="hidden max-w-40 truncate sm:block">{user.identity.label}</span><RoleBadge role={user.role} /></summary>
-            <div className="absolute right-0 mt-2 w-72 rounded-lg border border-border bg-surface-elevated p-3 shadow-lab"><p className="truncate font-black text-foreground">{user.identity.label}</p><p className="truncate text-xs text-subtle">{user.identity.email}</p><form action="/auth/sign-out" method="post" className="mt-3 border-t border-border pt-2"><button className="btn-ghost w-full justify-start" type="submit"><LogOut className="h-4 w-4" />Sign out</button></form></div>
+            <div className="layer-dropdown absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface-elevated p-3 shadow-lab"><p className="truncate font-black text-foreground">{user.identity.label}</p><p className="truncate text-xs text-subtle">{user.identity.email}</p><form action="/auth/sign-out" method="post" className="mt-3 border-t border-border pt-2"><button className="btn-ghost w-full justify-start" type="submit"><LogOut className="h-4 w-4" />Sign out</button></form></div>
           </details>
           </div>
         </header>

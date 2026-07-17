@@ -16,8 +16,8 @@ import {
   Save,
   Server,
   Trash2,
+  Wrench,
   Zap,
-  type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -26,7 +26,8 @@ import { useAdminInterfaceMode } from "@/components/admin/AdminShell";
 import { LocalTime } from "@/components/LocalTime";
 import { clampProgress, type MaintenanceSettings, type MaintenanceTask, type MaintenanceUpdate } from "@/lib/maintenance";
 
-type Props = { initialSettings: MaintenanceSettings; initialTasks: MaintenanceTask[]; initialUpdates: MaintenanceUpdate[]; lastUpdatedBy: string | null };
+type HistoryItem = { id: string; action: string; actor_kind: string; preset_key: string | null; title: string; maintenance_enabled: boolean; scheduled_start_at: string | null; scheduled_end_at: string | null; created_at: string };
+type Props = { initialSettings: MaintenanceSettings; initialTasks: MaintenanceTask[]; initialUpdates: MaintenanceUpdate[]; history: HistoryItem[]; lastUpdatedBy: string | null };
 type Confirmation = { title: string; description: string; actionLabel: string; tone?: "danger" | "warning"; action: () => void } | null;
 type Preset = {
   id: string;
@@ -36,7 +37,7 @@ type Preset = {
   message: string;
   status: string;
   etaMinutes: number | null;
-  icon: LucideIcon;
+  icon: typeof RefreshCw;
 };
 
 export const maintenancePresets: Preset[] = [
@@ -44,8 +45,14 @@ export const maintenancePresets: Preset[] = [
   { id: "scheduled", label: "Scheduled Maintenance", title: "Scheduled maintenance is underway.", badge: "Scheduled maintenance", message: "We’re completing planned maintenance to keep the lab reliable and secure.", status: "scheduled", etaMinutes: 120, icon: Clock3 },
   { id: "emergency", label: "Emergency Maintenance", title: "The lab is temporarily unavailable.", badge: "Emergency maintenance", message: "We’re resolving an unexpected issue and will restore access as soon as it is safe.", status: "emergency", etaMinutes: null, icon: AlertTriangle },
   { id: "database", label: "Database Upgrade", title: "We’re upgrading the lab’s data systems.", badge: "Database upgrade", message: "LearnToCode Lab is temporarily offline while we improve database reliability and performance.", status: "database", etaMinutes: 60, icon: Database },
+  { id: "database-maintenance", label: "Database Maintenance", title: "Database maintenance is underway.", badge: "Database maintenance", message: "We’re performing routine database maintenance to keep learning data reliable.", status: "database", etaMinutes: 30, icon: Database },
   { id: "api", label: "API Maintenance", title: "Connected services are being updated.", badge: "API maintenance", message: "We’re updating core services that power the learning experience.", status: "api", etaMinutes: 45, icon: Server },
-  { id: "system", label: "System Upgrade", title: "The lab is getting an upgrade.", badge: "System upgrade", message: "We’re improving LearnToCode Lab’s reliability, lessons, and learning tools.", status: "upgrading", etaMinutes: 120, icon: Zap },
+  { id: "server", label: "Server Maintenance", title: "Core systems are receiving maintenance.", badge: "Server maintenance", message: "We’re maintaining the servers that keep LearnToCode Lab available and responsive.", status: "server", etaMinutes: 45, icon: Server },
+  { id: "security", label: "Security Update", title: "A security update is being installed.", badge: "Security update", message: "We’re applying routine security improvements while keeping your learning progress safe.", status: "security", etaMinutes: 30, icon: Zap },
+  { id: "performance", label: "Performance Upgrade", title: "The lab is getting faster.", badge: "Performance upgrade", message: "We’re improving speed and reliability across LearnToCode Lab.", status: "performance", etaMinutes: 45, icon: Zap },
+  { id: "feature", label: "New Feature Deployment", title: "New improvements are being prepared.", badge: "Feature deployment", message: "We’re deploying product improvements and completing final checks.", status: "deployment", etaMinutes: 30, icon: Zap },
+  { id: "bug-fix", label: "Bug Fix Deployment", title: "A reliability fix is being deployed.", badge: "Fix deployment", message: "We’re applying a focused fix and verifying that services are stable.", status: "deployment", etaMinutes: 20, icon: Wrench },
+  { id: "system", label: "Full System Upgrade", title: "The lab is getting an upgrade.", badge: "System upgrade", message: "We’re improving LearnToCode Lab’s reliability and core systems.", status: "upgrading", etaMinutes: 120, icon: Zap },
 ];
 
 function snapshot(settings: MaintenanceSettings, tasks: MaintenanceTask[], updates: MaintenanceUpdate[]) {
@@ -64,7 +71,7 @@ function fromLocalDateTime(value: string) {
   return value ? new Date(value).toISOString() : null;
 }
 
-export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpdates, lastUpdatedBy }: Props) {
+export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpdates, history, lastUpdatedBy }: Props) {
   const router = useRouter();
   const { isAdvanced } = useAdminInterfaceMode();
   const [settings, setSettings] = useState(initialSettings);
@@ -108,6 +115,13 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
       maintenance_status: preset.status,
       estimated_return_at: preset.etaMinutes ? new Date(Date.now() + preset.etaMinutes * 60_000).toISOString() : null,
       show_countdown: preset.etaMinutes !== null,
+      preset_key: preset.id,
+      allow_authenticated_users: false,
+      allow_admin_bypass: true,
+      show_progress: preset.id !== "emergency",
+      automatic_progress: false,
+      automatic_messages: false,
+      automatic_updates: false,
     }));
     setMessage({ type: "info", text: `${preset.label} applied. Review the draft, then publish when ready.` });
   }
@@ -139,12 +153,15 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
   }
 
   function requestPublish() {
-    if (settings.maintenance_enabled === savedEnabled) { void save(); return; }
+    const saved = JSON.parse(savedSnapshot) as { settings: MaintenanceSettings };
+    const scheduleActivationChanged = Boolean(settings.scheduled_start_at && settings.scheduled_start_at !== saved.settings.scheduled_start_at);
+    if (settings.maintenance_enabled === savedEnabled && !scheduleActivationChanged) { void save(); return; }
+    const scheduling = !settings.maintenance_enabled && scheduleActivationChanged;
     setConfirmation({
-      title: settings.maintenance_enabled ? "Enable maintenance mode?" : "Reopen the public site?",
-      description: settings.maintenance_enabled ? "Publishing will redirect public visitors to the maintenance page. Verified staff recovery remains available." : "Publishing will stop maintenance redirects after the configuration refreshes.",
-      actionLabel: settings.maintenance_enabled ? "Enable and publish" : "Disable and publish",
-      tone: settings.maintenance_enabled ? "warning" : undefined,
+      title: scheduling ? "Schedule maintenance mode?" : settings.maintenance_enabled ? "Enable maintenance mode?" : "Reopen the public site?",
+      description: scheduling ? `Maintenance will begin automatically at ${new Date(settings.scheduled_start_at!).toLocaleString()}. Visitors will see “${settings.maintenance_title}” and learner access will be ${settings.allow_authenticated_users ? "allowed" : "blocked"}. Verified staff recovery remains available.${settings.scheduled_end_at ? ` Automatic end: ${new Date(settings.scheduled_end_at).toLocaleString()}.` : ""}` : settings.maintenance_enabled ? `Visitors will see “${settings.maintenance_title}” — ${settings.maintenance_message} ${settings.estimated_return_at ? `Estimated completion: ${new Date(settings.estimated_return_at).toLocaleString()}.` : "No completion time is promised."} Learner access is ${settings.allow_authenticated_users ? "allowed" : "blocked"}; verified staff recovery remains available.${settings.scheduled_end_at ? ` Automatic end: ${new Date(settings.scheduled_end_at).toLocaleString()}.` : ""}` : `Publishing will reopen the public site.${settings.scheduled_start_at || settings.scheduled_end_at ? " The saved schedule will remain only if it is still configured." : ""}`,
+      actionLabel: scheduling ? "Confirm schedule" : settings.maintenance_enabled ? "Enable and publish" : "Disable and publish",
+      tone: settings.maintenance_enabled || scheduling ? "warning" : undefined,
       action: () => void save(),
     });
   }
@@ -188,12 +205,7 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
 
           <div>
             <h3 className="text-sm font-black text-foreground">Start with a preset <span className="font-normal text-subtle">(optional)</span></h3>
-            <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-3" aria-label="Maintenance presets">
-              {maintenancePresets.map((preset) => {
-                const Icon = preset.icon;
-                return <button key={preset.id} type="button" className="surface-interactive flex min-h-12 items-center gap-3 px-3 py-2 text-left text-sm font-bold text-secondary" onClick={() => applyPreset(preset)}><Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span>{preset.label}</span></button>;
-              })}
-            </div>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row"><select className="form-control" aria-label="Maintenance preset" value={settings.preset_key ?? "custom"} onChange={(event) => { const preset = maintenancePresets.find((item) => item.id === event.target.value); if (preset) applyPreset(preset); else updateSetting("preset_key", "custom"); }}><option value="custom">Custom maintenance</option>{maintenancePresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select>{settings.preset_key && settings.preset_key !== "custom" ? (() => { const Icon = maintenancePresets.find((item) => item.id === settings.preset_key)?.icon ?? Wrench; return <span className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-surface-secondary px-4 text-sm font-bold text-secondary"><Icon className="h-4 w-4 text-primary" />Editable preset</span>; })() : null}</div>
           </div>
 
           <Field label="Title"><input required maxLength={180} value={settings.maintenance_title} onChange={(event) => updateSetting("maintenance_title", event.target.value)} /></Field>
@@ -235,6 +247,12 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
               <div className="grid gap-4 md:grid-cols-2"><Field label={`Overall progress: ${settings.progress_percent}%`}><input className="w-full" type="range" min={0} max={100} value={settings.progress_percent} onChange={(event) => updateSetting("progress_percent", clampProgress(Number(event.target.value)))} /></Field><Field label="Refresh interval (seconds)" help="Checks pause while the page is hidden."><input type="number" min={15} max={3600} value={settings.auto_refresh_interval_seconds} onChange={(event) => updateSetting("auto_refresh_interval_seconds", Number(event.target.value))} /></Field></div>
             </AdminSection>
 
+            <AdminSection title="Scheduling and automation" description="Times are entered in your local timezone and stored as UTC. Automation remains tied to this maintenance event.">
+              <div className="grid gap-4 md:grid-cols-2"><Field label="Automatic start"><input type="datetime-local" value={browserReady ? toLocalDateTime(settings.scheduled_start_at) : ""} onChange={(event) => updateSetting("scheduled_start_at", fromLocalDateTime(event.target.value))} /></Field><Field label="Automatic end"><input type="datetime-local" value={browserReady ? toLocalDateTime(settings.scheduled_end_at) : ""} onChange={(event) => { const end = fromLocalDateTime(event.target.value); updateSetting("scheduled_end_at", end); if (end) updateSetting("estimated_return_at", end); }} /></Field></div>
+              <div><p className="type-label">Set duration from now</p><div className="mt-2 flex flex-wrap gap-2">{[[5,"5 min"],[10,"10 min"],[15,"15 min"],[30,"30 min"],[60,"1 hour"],[120,"2 hours"]].map(([minutes,label]) => <button key={minutes} type="button" className="btn-outline" onClick={() => { const start = new Date(); const end = new Date(start.getTime() + Number(minutes) * 60_000); updateSetting("scheduled_start_at", start.toISOString()); updateSetting("scheduled_end_at", end.toISOString()); updateSetting("estimated_return_at", end.toISOString()); }}>{label}</button>)}</div></div>
+              <div className="grid gap-3 lg:grid-cols-3"><Toggle label="Automatic progress" help="Uses elapsed schedule time and stops at 90% until completion." checked={settings.automatic_progress} onChange={(value) => updateSetting("automatic_progress", value)} disabled={!settings.scheduled_start_at || !settings.scheduled_end_at} disabledHelp="Set a start and end first." /><Toggle label="Automatic stage messages" help="Allows calm visitor messaging based on progress." checked={settings.automatic_messages} onChange={(value) => updateSetting("automatic_messages", value)} disabled={!settings.scheduled_start_at || !settings.scheduled_end_at} disabledHelp="Set a start and end first." /><Toggle label="Milestone updates" help="Publishes at most one update at each safe milestone." checked={settings.automatic_updates} onChange={(value) => updateSetting("automatic_updates", value)} disabled={!settings.scheduled_start_at || !settings.scheduled_end_at} disabledHelp="Set a start and end first." /></div>
+            </AdminSection>
+
             <AdminSection title="Tasks" description="Optional work items shown to visitors when published.">
               <div className="flex justify-end"><button type="button" className="btn-outline" onClick={() => setTasks((items) => [...items, { id: crypto.randomUUID(), title: "", description: "", status: "waiting", progress_percent: 0, display_order: items.length * 10, visible: true }])}><Plus className="h-4 w-4" />Add task</button></div>
               {tasks.length ? <div className="grid gap-3">{tasks.map((task, index) => <article key={task.id} className="rounded-xl bg-surface-secondary p-4"><div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_170px]"><Field label={`Task ${index + 1} title`}><input maxLength={120} value={task.title} placeholder="Describe the work item" onChange={(event) => updateTask(task.id, { title: event.target.value })} /></Field><Field label="Status"><select value={task.status} onChange={(event) => updateTask(task.id, { status: event.target.value as MaintenanceTask["status"] })}><option value="waiting">Waiting</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="delayed">Paused</option></select></Field></div><Field label="Description"><textarea rows={2} maxLength={500} value={task.description ?? ""} onChange={(event) => updateTask(task.id, { description: event.target.value })} /></Field><div className="mt-3 flex flex-wrap items-center gap-2"><label className="min-w-44 flex-1 text-sm font-bold text-secondary">Progress: {task.progress_percent ?? 0}%<input className="mt-2 w-full" type="range" min={0} max={100} value={task.progress_percent ?? 0} onChange={(event) => updateTask(task.id, { progress_percent: clampProgress(Number(event.target.value)) })} /></label><Toggle compact label="Published" checked={task.visible} onChange={(visible) => updateTask(task.id, { visible })} /><IconButton label="Move task up" disabled={index === 0} onClick={() => moveTask(index, -1)}><ArrowUp /></IconButton><IconButton label="Move task down" disabled={index === tasks.length - 1} onClick={() => moveTask(index, 1)}><ArrowDown /></IconButton><IconButton label="Delete task" danger onClick={() => confirmDelete("task", task.id)}><Trash2 /></IconButton></div></article>)}</div> : <EmptyState title="No maintenance tasks" copy="Maintenance works without tasks. Add one only when visitors need progress detail." />}
@@ -248,6 +266,10 @@ export function MaintenanceAdminForm({ initialSettings, initialTasks, initialUpd
             <AdminSection title="Preview and recovery" description="Review the saved public page and the server-enforced recovery guarantees.">
               <div className="grid gap-3 md:grid-cols-2"><RecoveryItem text="Staff sign-in remains reachable during maintenance." /><RecoveryItem text="Admin and owner roles are verified by the server." /><RecoveryItem text="Emergency override can force maintenance on or off." /><RecoveryItem text="OAuth, password reset, and sign-out bypass maintenance." /></div>
               <div className="flex flex-wrap gap-2"><Link href="/admin/maintenance/preview" className="btn-outline"><Eye className="h-4 w-4" />Open saved preview</Link><Link href="/admin/activity" className="btn-outline">View activity</Link></div>
+            </AdminSection>
+
+            <AdminSection title="Maintenance history" description="A compact, append-only record of configuration, activation, and automation events.">
+              {history.length ? <div className="grid gap-2">{history.map((item) => <article key={item.id} className="rounded-lg bg-surface-secondary p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="capitalize text-foreground">{item.action.replaceAll("_", " ")}</strong><LocalTime value={item.created_at} /></div><p className="mt-1 text-sm text-muted">{item.title} · {item.actor_kind === "automation" ? "Automatic action" : "Staff action"}{item.preset_key ? ` · ${item.preset_key.replaceAll("-", " ")}` : ""}</p></article>)}</div> : <EmptyState title="No maintenance history yet" copy="History will appear after the stabilization migration is applied and changes are published." />}
             </AdminSection>
           </div>
         ) : null}
@@ -288,5 +310,5 @@ function ConfirmDialog({ confirmation, busy, onCancel }: { confirmation: Confirm
     return () => { window.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = previousOverflow; previousFocus?.focus(); };
   }, [busy, confirmation, onCancel]);
   if (!confirmation) return null;
-  return <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/65 p-4"><div ref={dialogRef} className="w-full max-w-lg rounded-xl bg-surface p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-copy"><h2 id="confirm-title" className="type-section">{confirmation.title}</h2><p id="confirm-copy" className="mt-3 text-muted">{confirmation.description}</p><div className="mt-6 flex justify-end gap-2"><button ref={cancelRef} type="button" className="btn-outline" disabled={busy} onClick={onCancel}>Cancel</button><button type="button" disabled={busy} onClick={confirmation.action} className={confirmation.tone === "danger" || confirmation.tone === "warning" ? "btn-danger" : "btn-primary"}>{busy ? "Working…" : confirmation.actionLabel}</button></div></div></div>;
+  return <div className="layer-overlay fixed inset-0 grid place-items-center bg-slate-950/65 p-4"><div ref={dialogRef} className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-surface p-5 shadow-2xl sm:p-6" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-copy"><h2 id="confirm-title" className="type-section">{confirmation.title}</h2><p id="confirm-copy" className="mt-3 text-muted">{confirmation.description}</p><div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button ref={cancelRef} type="button" className="btn-outline" disabled={busy} onClick={onCancel}>Cancel</button><button type="button" disabled={busy} onClick={confirmation.action} className={confirmation.tone === "danger" || confirmation.tone === "warning" ? "btn-danger" : "btn-primary"}>{busy ? "Working…" : confirmation.actionLabel}</button></div></div></div>;
 }

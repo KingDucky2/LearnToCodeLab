@@ -15,21 +15,38 @@ export async function PATCH(request: Request) {
   if (!display.valid) return NextResponse.json({ message: display.message }, { status: 400 });
   if (!username.valid) return NextResponse.json({ message: username.message }, { status: 400 });
   const bio = typeof body.bio === "string" ? body.bio.trim().slice(0, 280) : "";
+  const struggle = typeof body.biggestStruggle === "string" ? body.biggestStruggle.trim().slice(0, 500) : "";
   const experience = onboardingExperienceLevels.includes(body.experienceLevel as any) ? body.experienceLevel as string : null;
   const goal = onboardingGoals.includes(body.learningGoal as any) ? body.learningGoal as string : null;
   const rawLanguage = typeof body.preferredLanguage === "string" ? body.preferredLanguage.toLowerCase().replace("c++", "cpp").replaceAll(" ", "_") : "";
   const language = onboardingLanguages.includes(rawLanguage as any) ? rawLanguage : null;
   const dailyMinutes = dailyMinuteOptions.includes(body.dailyMinutes as any) ? body.dailyMinutes as number : 20;
   const learningFormat = learningFormats.includes(body.learningFormat as any) ? body.learningFormat as string : "mixed";
+  const interests = Array.isArray(body.interests)
+    ? body.interests.filter((item): item is string => typeof item === "string" && onboardingGoals.includes(item as any) && item !== goal).slice(0, 8)
+    : [];
   if (!experience || !goal || !language) return NextResponse.json({ message: "Choose valid learning profile options." }, { status: 400 });
 
   const db = supabase as any;
-  const profileResult = await db.from("profiles").update({ display_name: normalizeDisplayName(display.normalized), username: username.display || null, bio: bio || null, preferred_language: language, experience_level: experience, learning_goal: goal }).eq("id", user.id);
-  if (profileResult.error) {
-    const duplicate = profileResult.error.code === "23505" || /duplicate|unique/i.test(profileResult.error.message);
-    return NextResponse.json({ message: duplicate ? "That username is already taken." : "Your profile could not be updated." }, { status: duplicate ? 409 : 400 });
+  const { error } = await db.rpc("save_learner_profile", {
+    profile_display_name: normalizeDisplayName(display.normalized),
+    profile_username: username.display,
+    profile_bio: bio,
+    profile_experience: experience,
+    primary_goal: goal,
+    interests,
+    starting_language: language,
+    minutes_per_day: dailyMinutes,
+    preferred_format: learningFormat,
+    learning_struggle: struggle,
+  });
+  if (error) {
+    const duplicate = error.code === "23505" || /duplicate|unique/i.test(error.message);
+    const migrationMissing = ["42703", "42883", "PGRST202"].includes(error.code);
+    console.error("Profile transaction failed.", { code: error.code ?? "unknown" });
+    return NextResponse.json({
+      message: duplicate ? "That username is already taken." : migrationMissing ? "Profile setup is incomplete. An administrator must apply the latest Supabase migration." : error.code === "42501" ? "Your session expired or you do not have permission to update this profile." : "The database could not save your profile. Your existing values were not changed.",
+    }, { status: duplicate ? 409 : migrationMissing ? 503 : error.code === "42501" ? 403 : 400 });
   }
-  const preferenceResult = await db.from("learning_preferences").upsert({ user_id: user.id, daily_minutes: dailyMinutes, learning_format: learningFormat }, { onConflict: "user_id" });
-  if (preferenceResult.error) return NextResponse.json({ message: "Your learning preferences could not be updated." }, { status: 400 });
   return NextResponse.json({ message: "Profile updated.", username: username.display }, { headers: { "Cache-Control": "no-store" } });
 }

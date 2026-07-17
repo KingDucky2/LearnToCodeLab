@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { clampProgress, isMaintenanceTaskStatus, type MaintenanceSettings, type MaintenanceTask, type MaintenanceUpdate } from "@/lib/maintenance";
@@ -25,6 +26,13 @@ export async function PUT(request: Request) {
   if (contactEmail && !emailPattern.test(contactEmail)) return NextResponse.json({ message: "Enter a valid support email address." }, { status: 400 });
   const estimatedReturn = payload.settings.estimated_return_at;
   if (estimatedReturn && !Number.isFinite(Date.parse(estimatedReturn))) return NextResponse.json({ message: "Enter a valid estimated return time." }, { status: 400 });
+  const scheduledStart = payload.settings.scheduled_start_at;
+  const scheduledEnd = payload.settings.scheduled_end_at;
+  if (scheduledStart && !Number.isFinite(Date.parse(scheduledStart))) return NextResponse.json({ message: "Enter a valid automatic start time." }, { status: 400 });
+  if (scheduledEnd && !Number.isFinite(Date.parse(scheduledEnd))) return NextResponse.json({ message: "Enter a valid automatic end time." }, { status: 400 });
+  if (scheduledEnd && Date.parse(scheduledEnd) <= Date.now()) return NextResponse.json({ message: "Automatic end must be in the future." }, { status: 400 });
+  if (scheduledStart && scheduledEnd && Date.parse(scheduledEnd) <= Date.parse(scheduledStart)) return NextResponse.json({ message: "Automatic end must be later than automatic start." }, { status: 400 });
+  if ((payload.settings.automatic_progress || payload.settings.automatic_updates) && (!scheduledStart || !scheduledEnd)) return NextResponse.json({ message: "Automatic progress and updates require both a scheduled start and end." }, { status: 400 });
 
   const settings = payload.settings;
   const db = admin.supabase as any;
@@ -47,6 +55,13 @@ export async function PUT(request: Request) {
     auto_refresh_interval_seconds: Math.min(3600, Math.max(15, Number(settings.auto_refresh_interval_seconds) || 60)),
     support_message: String(settings.support_message ?? "").trim().slice(0, 500) || null,
     contact_email: contactEmail.slice(0, 254) || null,
+    preset_key: String(settings.preset_key ?? "custom").trim().slice(0, 80),
+    scheduled_start_at: scheduledStart || null,
+    scheduled_end_at: scheduledEnd || null,
+    schedule_event_id: settings.schedule_event_id || randomUUID(),
+    automatic_progress: Boolean(settings.automatic_progress),
+    automatic_messages: Boolean(settings.automatic_messages),
+    automatic_updates: Boolean(settings.automatic_updates),
   };
   const normalizedTasks = payload.tasks.map((task, index) => ({
       id: task.id,
@@ -58,12 +73,16 @@ export async function PUT(request: Request) {
       visible: task.visible
     }));
   const normalizedUpdates = payload.updates.map((update) => ({ id: update.id, title: update.title.trim().slice(0, 120), message: update.message.trim().slice(0, 1000), published_at: update.published_at, visible: update.visible }));
-  const { error: saveError } = await db.rpc("save_maintenance_configuration", {
+  const { error: saveError } = await db.rpc("save_maintenance_configuration_v2", {
     settings_payload: normalizedSettings,
     tasks_payload: normalizedTasks,
     updates_payload: normalizedUpdates
   });
-  if (saveError) return NextResponse.json({ message: "Maintenance controls could not be saved." }, { status: 500 });
+  if (saveError) {
+    console.error("Maintenance configuration transaction failed.", { code: saveError.code ?? "unknown" });
+    const migrationMissing = ["42703", "42883", "PGRST202"].includes(saveError.code);
+    return NextResponse.json({ message: migrationMissing ? "Maintenance automation is not configured. Apply the latest Supabase migration before publishing." : saveError.code === "42501" ? "You do not have permission to change maintenance settings." : "The database rejected the maintenance update. No changes were published." }, { status: migrationMissing ? 503 : saveError.code === "42501" ? 403 : 500 });
+  }
 
   const auditClient = createAdminClient();
   if (auditClient) await writeAdminAudit({ service: auditClient, actorId: admin.user.id, actorRole: admin.role || "unknown", action: "maintenance.configuration", targetType: "site", targetId: "global", summary: normalizedSettings.maintenance_enabled ? "Maintenance configuration saved with maintenance enabled." : "Maintenance configuration saved with the site online.", result: "success" });
