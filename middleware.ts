@@ -73,7 +73,14 @@ export async function middleware(request: NextRequest) {
   const needsProfile = Boolean(user && (isProtectedPath(pathname) || (maintenance.settings.maintenance_enabled && maintenance.settings.allow_admin_bypass && !maintenance.emergency)));
   if (user && needsProfile) {
     const db = supabase as any;
-    const { data } = await db.from("profiles").select("role,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
+    let { data, error } = await db.from("profiles").select("role,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
+    if (error) {
+      console.error("Unable to load expanded middleware profile; retrying authorization fields.", { code: error.code ?? "unknown" });
+      const fallback = await db.from("profiles").select("role,account_status").eq("id", user.id).maybeSingle();
+      data = fallback.data;
+      error = fallback.error;
+    }
+    if (error) console.error("Unable to load middleware authorization profile.", { code: error.code ?? "unknown" });
     role = data?.role ?? null;
     accountStatus = data?.account_status ?? "active";
     onboardingRequired = data?.onboarding_required === true;

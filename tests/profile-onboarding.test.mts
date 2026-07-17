@@ -31,6 +31,20 @@ test("role badges come only from database roles and support future staff labels"
   assert.equal(getRoleBadgeLabel("curriculum_editor"), "Curriculum Editor");
 });
 
+test("staff navigation keeps database roles available when optional profile fields fail", () => {
+  const serverRoles = readFileSync(new URL("../lib/maintenance-server.ts", import.meta.url), "utf8");
+  const middleware = readFileSync(new URL("../middleware.ts", import.meta.url), "utf8");
+  const navigation = readFileSync(new URL("../components/AppNavClient.tsx", import.meta.url), "utf8");
+  assert.match(serverRoles, /retrying stable fields/);
+  assert.match(serverRoles, /select\("role,display_name,avatar_url,preferred_language,account_status"\)/);
+  assert.doesNotMatch(serverRoles, /user_metadata.*role|app_metadata.*role/);
+  assert.match(middleware, /retrying authorization fields/);
+  assert.match(middleware, /select\("role,account_status"\)/);
+  assert.match(navigation, /href: "\/admin", label: "Administration"/);
+  assert.equal([...navigation.matchAll(/label: "Administration"/g)].length, 2);
+  assert.match(navigation, /user\.isAdmin/);
+});
+
 test("profile migration enforces identity and private avatar ownership", () => {
   const migration = readFileSync(new URL("../supabase/migrations/202607170002_profile_onboarding_polish.sql", import.meta.url), "utf8");
   assert.match(migration, /lower\(username\)/);
@@ -56,6 +70,12 @@ test("avatar and profile mutations validate on the server", () => {
   assert.match(profile, /validateDisplayName/);
   assert.match(profile, /validateProfileUsername/);
   assert.doesNotMatch(profile, /role:/);
+});
+
+test("settings keep lesson difficulty separate from onboarding experience", () => {
+  const settings = readFileSync(new URL("../components/settings/AccountSettingsForm.tsx", import.meta.url), "utf8");
+  assert.match(settings, /lesson_difficulty: toValue\(difficulty\)/);
+  assert.doesNotMatch(settings, /experience_level: difficulty/);
 });
 
 test("required onboarding preserves recovery routes and exempts existing users", () => {

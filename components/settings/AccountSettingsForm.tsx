@@ -95,7 +95,6 @@ export function AccountSettingsForm({ identity, role, preferences, profile, lear
           .from("profiles")
           .update({
             preferred_language: preferredLanguage,
-            experience_level: difficulty,
             updated_at: new Date().toISOString()
           })
           .eq("id", user.id),

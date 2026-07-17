@@ -14,6 +14,7 @@ export type AuthUserIdentityInput = {
 export type ProfileIdentityInput = {
   display_name?: string | null;
   avatar_url?: string | null;
+  avatar_source?: "provider" | "custom" | string | null;
 };
 
 export type AccountIdentity = {
@@ -45,6 +46,16 @@ export function normalizeAvatarUrl(value: string | null | undefined) {
   }
 }
 
+function isLegacyProviderAvatar(value: string | null) {
+  if (!value) return false;
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === "lh3.googleusercontent.com" || hostname.endsWith(".googleusercontent.com");
+  } catch {
+    return false;
+  }
+}
+
 export function getInitials(label: string) {
   const normalized = label.trim().replace(/@.*$/, "");
   const parts = normalized.split(/[\s._-]+/).filter(Boolean);
@@ -66,7 +77,15 @@ export function resolveAccountIdentity(user: AuthUserIdentityInput, profile?: Pr
   const storedAvatar = normalizeAvatarUrl(profile?.avatar_url);
   const providerAvatar = normalizeAvatarUrl(metadataString(providerMetadata, ["avatar_url", "picture"]));
   const userAvatar = normalizeAvatarUrl(metadataString(user.user_metadata, ["avatar_url", "picture"]));
-  const avatarUrls = [...new Set([storedAvatar, providerAvatar, userAvatar].filter((url): url is string => Boolean(url)))];
+  // `profiles.avatar_url` historically held both custom uploads and a snapshot
+  // of provider metadata. Only an explicitly custom avatar should outrank the
+  // current Supabase identity; provider snapshots remain a final fallback for
+  // older accounts whose identity metadata is temporarily unavailable.
+  const providerStoredAvatar = profile?.avatar_source === "provider"
+    || (!profile?.avatar_source && isLegacyProviderAvatar(storedAvatar));
+  const customAvatar = providerStoredAvatar ? null : storedAvatar;
+  const providerSnapshot = providerStoredAvatar ? storedAvatar : null;
+  const avatarUrls = [...new Set([customAvatar, providerAvatar, userAvatar, providerSnapshot].filter((url): url is string => Boolean(url)))];
 
   return {
     label,

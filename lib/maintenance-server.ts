@@ -76,7 +76,20 @@ export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   const { data: { user } } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!supabase || !user) return { supabase, user: null, role: null, profile: null };
   const db = supabase as any;
-  const { data } = await db.from("profiles").select("role,display_name,username,avatar_url,preferred_language,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
+  let { data, error } = await db.from("profiles").select("role,display_name,username,avatar_url,avatar_source,preferred_language,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
+
+  // Authorization must not disappear just because a newly deployed optional
+  // profile field is not available yet. Keep the role database-authoritative
+  // and retry with the stable authorization/identity fields used before the
+  // onboarding expansion. OAuth metadata is intentionally never consulted.
+  if (error) {
+    console.error("Unable to load the expanded current-user profile; retrying stable fields.", { code: error.code ?? "unknown" });
+    const fallback = await db.from("profiles").select("role,display_name,avatar_url,preferred_language,account_status").eq("id", user.id).maybeSingle();
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error) console.error("Unable to load the current-user role.", { code: error.code ?? "unknown" });
   return { supabase, user, role: (data?.role as string | undefined) ?? "learner", profile: data ?? null };
 });
 
