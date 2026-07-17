@@ -25,6 +25,7 @@ type NavUser = { identity: AccountIdentity; isAdmin: boolean; role: string } | n
 export function AppNavClient({ user }: { user: NavUser }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const accountMenuRef = useRef<HTMLDetailsElement>(null);
   const navItems = [...publicNavItems, ...(user ? privateNavItems.slice(0, 1) : [])];
 
@@ -46,13 +47,23 @@ export function AppNavClient({ user }: { user: NavUser }) {
     document.addEventListener("keydown", closeOnEscape);
     return () => { document.removeEventListener("pointerdown", closeAccountMenu); document.removeEventListener("keydown", closeOnEscape); };
   }, []);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeMobileMenu = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      requestAnimationFrame(() => mobileMenuButtonRef.current?.focus());
+    };
+    document.addEventListener("keydown", closeMobileMenu);
+    return () => document.removeEventListener("keydown", closeMobileMenu);
+  }, [menuOpen]);
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
   return (
-    <header className="layer-nav sticky top-2 mx-auto mt-2 w-[min(1180px,calc(100%_-_16px))] rounded-lg border border-border bg-surface/95 px-3 shadow-surface backdrop-blur sm:top-3 sm:mt-3 sm:w-[min(1180px,calc(100%_-_24px))]">
+    <header className="app-header layer-nav sticky mx-auto mt-2 w-[min(1180px,calc(100%_-_16px))] rounded-lg border border-border bg-surface/95 px-3 shadow-surface backdrop-blur sm:mt-3 sm:w-[min(1180px,calc(100%_-_24px))]">
       <div className="flex h-16 items-center justify-between gap-3">
         <Link href="/" aria-label="LearnToCode Lab home" className="flex min-w-0 items-center gap-3 rounded-lg font-black text-foreground focus-visible:outline-none">
           <BrandLogo />
@@ -76,7 +87,7 @@ export function AppNavClient({ user }: { user: NavUser }) {
           )}
         </div>
 
-        <button type="button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"} title={menuOpen ? "Close menu" : "Open menu"} className="btn-icon btn-outline lg:hidden">
+        <button ref={mobileMenuButtonRef} type="button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="mobile-navigation" aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"} title={menuOpen ? "Close menu" : "Open menu"} className="btn-icon btn-outline lg:hidden">
           {menuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
       </div>
@@ -123,16 +134,16 @@ function AccountMenu({ user, detailsRef }: { user: Exclude<NavUser, null>; detai
 
   return (
     <details ref={detailsRef} className="group relative">
-      <summary className="btn-outline flex max-w-56 cursor-pointer list-none pr-3 [&::-webkit-details-marker]:hidden">
+      <summary aria-controls="account-navigation-menu" aria-haspopup="true" className="btn-outline flex min-w-0 max-w-[13rem] cursor-pointer list-none pr-3 xl:max-w-[18rem] [&::-webkit-details-marker]:hidden">
         <AccountAvatar identity={user.identity} decorative />
-        <span className="min-w-0 truncate" title={user.identity.label}>{user.identity.label}</span><RoleBadge role={user.role} />
+        <span className="min-w-16 flex-1 truncate" title={user.identity.label}>{user.identity.label}</span><span className="hidden shrink-0 xl:inline-flex"><RoleBadge role={user.role} /></span>
         <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <div className="layer-dropdown absolute right-0 top-[calc(100%+8px)] w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface-elevated p-2 shadow-lab">
+      <div id="account-navigation-menu" className="account-dropdown layer-dropdown absolute right-0 top-[calc(100%+8px)] rounded-lg border border-border bg-surface-elevated p-2 shadow-lab">
         <div className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs font-bold text-muted"><span className="overflow-wrap-anywhere">Signed in as {user.identity.label}</span><RoleBadge role={user.role} /></div>
         <nav className="grid gap-1" aria-label="Account navigation">
           {items.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} className="btn-ghost justify-start"><Icon className="h-4 w-4" aria-hidden="true" />{label}</Link>
+            <Link key={href} href={href} onClick={() => { if (detailsRef.current) detailsRef.current.open = false; }} className="btn-ghost justify-start"><Icon className="h-4 w-4" aria-hidden="true" />{label}</Link>
           ))}
         </nav>
         <div className="mt-2 border-t border-border pt-2"><SignOutButton /></div>
