@@ -8,6 +8,7 @@ import { createClient, hasSupabaseEnv } from "@/lib/supabase/browser";
 import { AuthMessage } from "@/components/auth/AuthMessage";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordGuidance } from "@/components/auth/PasswordGuidance";
+import { validateDisplayName } from "@/lib/profile-validation";
 
 export function SignupForm() {
   const router = useRouter();
@@ -25,8 +26,9 @@ export function SignupForm() {
     event.preventDefault();
     setMessage(null);
 
-    if (!displayName.trim()) {
-      setMessage({ type: "error", text: "Enter your display name." });
+    const displayValidation = validateDisplayName(displayName);
+    if (!displayValidation.valid) {
+      setMessage({ type: "error", text: displayValidation.message });
       return;
     }
     if (!isValidEmail(email)) {
@@ -58,7 +60,7 @@ export function SignupForm() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-          data: { display_name: displayName.trim(), full_name: displayName.trim() }
+          data: { display_name: displayValidation.normalized, full_name: displayValidation.normalized }
         }
       });
 

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAuthPath, isProtectedPath, isSuspendedAccountAllowedPath, sanitizeAdminReturnPath, sanitizeReturnPath } from "@/lib/auth-utils";
+import { isAuthPath, isOnboardingExemptPath, isProtectedPath, isSuspendedAccountAllowedPath, sanitizeAdminReturnPath, sanitizeReturnPath } from "@/lib/auth-utils";
 import { createMiddlewareClient, hasSupabaseEnv } from "@/lib/supabase/middleware";
 import { getPublicMaintenanceState } from "@/lib/maintenance-server";
 import { classifyMaintenancePath, getMaintenanceAccessDecision, isAdminPath, safeMaintenanceReturnPath } from "@/lib/maintenance";
@@ -68,12 +68,16 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
   let role: string | null = null;
   let accountStatus: string | null = null;
+  let onboardingRequired = false;
+  let onboardingCompleted = false;
   const needsProfile = Boolean(user && (isProtectedPath(pathname) || (maintenance.settings.maintenance_enabled && maintenance.settings.allow_admin_bypass && !maintenance.emergency)));
   if (user && needsProfile) {
     const db = supabase as any;
-    const { data } = await db.from("profiles").select("role,account_status").eq("id", user.id).maybeSingle();
+    const { data } = await db.from("profiles").select("role,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
     role = data?.role ?? null;
     accountStatus = data?.account_status ?? "active";
+    onboardingRequired = data?.onboarding_required === true;
+    onboardingCompleted = data?.onboarding_completed === true;
   }
 
   const decision = getMaintenanceAccessDecision({ pathname, enabled: maintenance.settings.maintenance_enabled, emergency: maintenance.emergency, authenticated: Boolean(user), role, settings: maintenance.settings });
@@ -94,6 +98,15 @@ export async function middleware(request: NextRequest) {
     redirectUrl.pathname = "/support";
     redirectUrl.search = "";
     redirectUrl.searchParams.set("notice", "account-restricted");
+    const redirect = NextResponse.redirect(redirectUrl, 307);
+    copyResponseCookies(response(), redirect);
+    return redirect;
+  }
+
+  if (user && onboardingRequired && !onboardingCompleted && isProtectedPath(pathname) && !isOnboardingExemptPath(pathname)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/onboarding";
+    redirectUrl.search = "";
     const redirect = NextResponse.redirect(redirectUrl, 307);
     copyResponseCookies(response(), redirect);
     return redirect;

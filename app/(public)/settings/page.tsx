@@ -6,6 +6,8 @@ import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { resolveAccountIdentity } from "@/lib/identity";
 import { getCurrentUserRole } from "@/lib/maintenance-server";
 
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const session = await getCurrentUserRole();
   if (!session.user || !session.supabase) redirect("/login?next=/settings");
@@ -22,7 +24,7 @@ export default async function SettingsPage() {
     <PageShell>
       <SectionHeader eyebrow="Settings" title="Tune your learning system." copy="Manage security, preferences, privacy choices, and account safety from one clean place." />
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        <AccountSettingsForm identity={identity} profile={{ ...profile, preferred_language: session.profile?.preferred_language ?? null }} preferences={preferences} learningPreferences={learningPreferences} />
+        <AccountSettingsForm identity={identity} role={session.role ?? "learner"} profile={{ ...profile, preferred_language: session.profile?.preferred_language ?? null }} preferences={preferences} learningPreferences={learningPreferences} />
         <aside className="h-fit surface-panel">
           <span className="grid h-12 w-12 place-items-center rounded-lg bg-amber-100 text-amber-800">
             <FileText aria-hidden="true" className="h-6 w-6" />

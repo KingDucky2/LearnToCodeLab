@@ -10,10 +10,12 @@ export type Database = {
           display_name: string | null;
           username: string | null;
           avatar_url: string | null;
+          avatar_source: "provider" | "custom";
           bio: string | null;
           role: string;
           onboarding_complete: boolean;
           onboarding_completed: boolean;
+          onboarding_required: boolean;
           preferred_language: string | null;
           experience_level: string | null;
           learning_goal: string | null;
@@ -31,10 +33,12 @@ export type Database = {
           display_name?: string | null;
           username?: string | null;
           avatar_url?: string | null;
+          avatar_source?: "provider" | "custom";
           bio?: string | null;
           role?: string;
           onboarding_complete?: boolean;
           onboarding_completed?: boolean;
+          onboarding_required?: boolean;
           preferred_language?: string | null;
           experience_level?: string | null;
           learning_goal?: string | null;
@@ -65,6 +69,8 @@ export type Database = {
           theme: string;
           reduced_motion: boolean;
           lesson_difficulty: string;
+          daily_minutes: number;
+          learning_format: string;
           created_at: string;
           updated_at: string;
         };
@@ -77,6 +83,8 @@ export type Database = {
           theme?: string;
           reduced_motion?: boolean;
           lesson_difficulty?: string;
+          daily_minutes?: number;
+          learning_format?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -206,6 +214,7 @@ export type Database = {
       set_user_account_status: { Args: { target_user_id: string; next_status: string; change_reason: string }; Returns: undefined };
       admin_set_support_ticket_status: { Args: { target_ticket_id: string; next_status: string }; Returns: undefined };
       admin_set_support_ticket_archived: { Args: { target_ticket_id: string; should_archive: boolean }; Returns: undefined };
+      complete_profile_onboarding: { Args: { profile_display_name: string; profile_username: string; profile_experience: string; primary_goal: string; interests: Json; starting_language: string; minutes_per_day: number; preferred_format: string }; Returns: undefined };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

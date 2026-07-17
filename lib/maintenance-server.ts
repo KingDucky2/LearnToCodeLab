@@ -76,7 +76,7 @@ export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   const { data: { user } } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!supabase || !user) return { supabase, user: null, role: null, profile: null };
   const db = supabase as any;
-  const { data } = await db.from("profiles").select("role,display_name,avatar_url,preferred_language,account_status").eq("id", user.id).maybeSingle();
+  const { data } = await db.from("profiles").select("role,display_name,username,avatar_url,preferred_language,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
   return { supabase, user, role: (data?.role as string | undefined) ?? "learner", profile: data ?? null };
 });
 

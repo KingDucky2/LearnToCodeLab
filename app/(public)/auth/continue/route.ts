@@ -16,11 +16,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const maintenance = await getPublicMaintenanceState({ forceRefresh: true });
-  if (!maintenance.settings.maintenance_enabled) return NextResponse.redirect(new URL(safeNext, requestUrl.origin));
-
   const db = supabase as any;
-  const { data: profile } = await db.from("profiles").select("role,account_status").eq("id", user.id).maybeSingle();
+  const { data: profile } = await db.from("profiles").select("role,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
+
+  const maintenance = await getPublicMaintenanceState({ forceRefresh: true });
+  if (!maintenance.settings.maintenance_enabled) {
+    const destination = profile?.onboarding_required && !profile?.onboarding_completed ? "/onboarding" : safeNext;
+    return NextResponse.redirect(new URL(destination, requestUrl.origin));
+  }
+
   if (profile?.account_status === "suspended") {
     const supportUrl = new URL("/support", requestUrl.origin);
     supportUrl.searchParams.set("notice", "account-restricted");
@@ -32,7 +36,8 @@ export async function GET(request: Request) {
   }
 
   if (!maintenance.emergency && maintenance.settings.allow_authenticated_users && !isAdminPath(safeNext)) {
-    return NextResponse.redirect(new URL(safeNext, requestUrl.origin));
+    const destination = profile?.onboarding_required && !profile?.onboarding_completed ? "/onboarding" : safeNext;
+    return NextResponse.redirect(new URL(destination, requestUrl.origin));
   }
 
   const maintenanceUrl = new URL("/maintenance", requestUrl.origin);

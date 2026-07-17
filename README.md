@@ -78,6 +78,8 @@ supabase/migrations/202607120001_production_auth_profiles.sql
 supabase/migrations/202607120002_settings_integrity.sql
 supabase/migrations/202607130001_maintenance_system.sql
 supabase/migrations/202607160001_admin_support_system.sql
+supabase/migrations/202607170001_support_ticket_production_polish.sql
+supabase/migrations/202607170002_profile_onboarding_polish.sql
 ```
 
 The profile trigger creates a private one-to-one `profiles` row from Supabase auth metadata. The settings migration persists display preferences and tightens the insert/update ownership policies. Row Level Security only allows authenticated users to access their own private account data.
@@ -87,6 +89,8 @@ The profile trigger creates a private one-to-one `profiles` row from Supabase au
 Learners can create and follow private requests at `/support`. Verified staff use `/admin/users`, `/admin/support`, and `/admin/activity` for account recovery, ticket replies, private append-only notes, suspension history, and safe audit records. Password assistance sends the normal Supabase recovery email; the application never displays or stores passwords, reset tokens, or generated links.
 
 Apply `supabase/migrations/202607160001_admin_support_system.sql` before enabling these routes. Existing accounts remain active. See [SUPPORT_ADMINISTRATION.md](SUPPORT_ADMINISTRATION.md) for the security model and operating checklist.
+
+Avatar uploads, case-insensitive usernames, safe display names, and required onboarding for newly created accounts require `supabase/migrations/202607170002_profile_onboarding_polish.sql`. The migration creates the public `avatars` bucket with authenticated per-user write policies. Existing accounts are not forced through onboarding and instead receive a profile-completion prompt when information is missing.
 
 ## Maintenance Control System
 
