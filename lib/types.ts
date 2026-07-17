@@ -17,6 +17,11 @@ export type Database = {
           preferred_language: string | null;
           experience_level: string | null;
           learning_goal: string | null;
+          account_status: "active" | "suspended";
+          account_status_reason: string | null;
+          account_status_changed_at: string | null;
+          account_status_changed_by: string | null;
+          auth_providers: string[];
           created_at: string;
           updated_at: string;
         };
@@ -33,6 +38,11 @@ export type Database = {
           preferred_language?: string | null;
           experience_level?: string | null;
           learning_goal?: string | null;
+          account_status?: "active" | "suspended";
+          account_status_reason?: string | null;
+          account_status_changed_at?: string | null;
+          account_status_changed_by?: string | null;
+          auth_providers?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -142,12 +152,52 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["maintenance_updates"]["Row"]>;
         Relationships: [];
       };
+      support_tickets: {
+        Row: { id: string; ticket_number: number; user_id: string; subject: string; category: string; status: string; priority: string; needs_staff_attention: boolean; page_url: string | null; diagnostics: Json | null; diagnostics_consent: boolean; assigned_to: string | null; created_at: string; updated_at: string; resolved_at: string | null };
+        Insert: { id?: string; user_id: string; subject: string; category: string; status?: string; priority?: string; needs_staff_attention?: boolean; page_url?: string | null; diagnostics?: Json | null; diagnostics_consent?: boolean; assigned_to?: string | null; created_at?: string; updated_at?: string; resolved_at?: string | null };
+        Update: Partial<Database["public"]["Tables"]["support_tickets"]["Insert"]>;
+        Relationships: [];
+      };
+      support_messages: {
+        Row: { id: string; ticket_id: string; author_id: string | null; body: string; author_kind: "learner" | "staff"; created_at: string };
+        Insert: { id?: string; ticket_id: string; author_id: string; body: string; author_kind: "learner" | "staff"; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      support_staff_notes: {
+        Row: { id: string; ticket_id: string; author_id: string | null; body: string; created_at: string };
+        Insert: { id?: string; ticket_id: string; author_id: string; body: string; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      account_status_history: {
+        Row: { id: string; user_id: string; actor_id: string | null; previous_status: string; new_status: string; reason: string; created_at: string };
+        Insert: Omit<Database["public"]["Tables"]["account_status_history"]["Row"], "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      admin_audit_log: {
+        Row: { id: string; actor_id: string | null; actor_role: string; action: string; target_type: string; target_id: string | null; summary: string; result: "success" | "denied" | "failed"; correlation_id: string; created_at: string };
+        Insert: { id?: string; actor_id?: string | null; actor_role: string; action: string; target_type: string; target_id?: string | null; summary: string; result: "success" | "denied" | "failed"; correlation_id?: string; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
+      user_staff_notes: {
+        Row: { id: string; user_id: string; author_id: string | null; body: string; created_at: string };
+        Insert: { id?: string; user_id: string; author_id: string; body: string; created_at?: string };
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       get_public_maintenance_state: { Args: Record<PropertyKey, never>; Returns: Json };
       is_site_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       save_maintenance_configuration: { Args: { settings_payload: Json; tasks_payload: Json; updates_payload: Json }; Returns: undefined };
+      admin_revoke_user_sessions: { Args: { target_user_id: string }; Returns: undefined };
+      create_support_ticket: { Args: { ticket_subject: string; ticket_category: string; initial_message: string; related_page?: string | null; include_diagnostics?: boolean; diagnostic_payload?: Json | null }; Returns: string };
+      close_own_support_ticket: { Args: { target_ticket_id: string }; Returns: undefined };
+      set_user_account_status: { Args: { target_user_id: string; next_status: string; change_reason: string }; Returns: undefined };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

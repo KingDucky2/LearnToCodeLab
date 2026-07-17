@@ -77,9 +77,16 @@ Current auth and settings migrations:
 supabase/migrations/202607120001_production_auth_profiles.sql
 supabase/migrations/202607120002_settings_integrity.sql
 supabase/migrations/202607130001_maintenance_system.sql
+supabase/migrations/202607160001_admin_support_system.sql
 ```
 
 The profile trigger creates a private one-to-one `profiles` row from Supabase auth metadata. The settings migration persists display preferences and tightens the insert/update ownership policies. Row Level Security only allows authenticated users to access their own private account data.
+
+## Support and user administration
+
+Learners can create and follow private requests at `/support`. Verified staff use `/admin/users`, `/admin/support`, and `/admin/activity` for account recovery, ticket replies, private append-only notes, suspension history, and safe audit records. Password assistance sends the normal Supabase recovery email; the application never displays or stores passwords, reset tokens, or generated links.
+
+Apply `supabase/migrations/202607160001_admin_support_system.sql` before enabling these routes. Existing accounts remain active. See [SUPPORT_ADMINISTRATION.md](SUPPORT_ADMINISTRATION.md) for the security model and operating checklist.
 
 ## Maintenance Control System
 
@@ -174,6 +181,8 @@ Vercel environment changes require a redeployment. After database recovery, retu
 /dashboard
 /profile
 /settings
+/support
+/support/new
 ```
 
 Legacy routes under `/auth/sign-in`, `/auth/create-account`, `/auth/forgot-password`, and `/auth/reset-password` redirect to the new routes.

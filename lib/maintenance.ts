@@ -84,6 +84,8 @@ const maintenanceSessionBypassPrefixes = [
   "/auth/reset-password",
   "/forgot-password",
   "/reset-password",
+  "/support",
+  "/api/support",
   "/api/auth",
   "/api/admin/maintenance",
   "/api/maintenance"

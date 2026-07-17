@@ -20,7 +20,12 @@ export async function GET(request: Request) {
   if (!maintenance.settings.maintenance_enabled) return NextResponse.redirect(new URL(safeNext, requestUrl.origin));
 
   const db = supabase as any;
-  const { data: profile } = await db.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const { data: profile } = await db.from("profiles").select("role,account_status").eq("id", user.id).maybeSingle();
+  if (profile?.account_status === "suspended") {
+    const supportUrl = new URL("/support", requestUrl.origin);
+    supportUrl.searchParams.set("notice", "account-restricted");
+    return NextResponse.redirect(supportUrl);
+  }
   if (isAdminRole(profile?.role)) {
     const destination = isAdminPath(safeNext) ? safeNext : "/admin/maintenance";
     return NextResponse.redirect(new URL(destination, requestUrl.origin));
