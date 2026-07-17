@@ -61,6 +61,42 @@ test("provider avatar supports picture and invalid stored URLs fall back safely"
   assert.equal(normalizeAvatarUrl("http://remote.example/avatar.png"), null);
 });
 
+test("current provider identity outranks a stale provider snapshot", () => {
+  const identity = resolveAccountIdentity(
+    {
+      email: "grace@example.com",
+      identities: [{ provider: "google", identity_data: { picture: "https://lh3.googleusercontent.com/current.png" } }]
+    },
+    { avatar_url: "https://lh3.googleusercontent.com/stale.png", avatar_source: "provider" }
+  );
+  assert.deepEqual(identity.avatarUrls, [
+    "https://lh3.googleusercontent.com/current.png",
+    "https://lh3.googleusercontent.com/stale.png"
+  ]);
+});
+
+test("current Google identity outranks a legacy provider snapshot without source metadata", () => {
+  const identity = resolveAccountIdentity(
+    {
+      email: "grace@example.com",
+      identities: [{ provider: "google", identity_data: { picture: "https://lh3.googleusercontent.com/current.png" } }]
+    },
+    { avatar_url: "https://lh3.googleusercontent.com/stale.png" }
+  );
+  assert.equal(identity.avatarUrl, "https://lh3.googleusercontent.com/current.png");
+});
+
+test("an explicitly custom avatar still has priority over provider metadata", () => {
+  const identity = resolveAccountIdentity(
+    {
+      email: "grace@example.com",
+      identities: [{ provider: "google", identity_data: { picture: "https://lh3.googleusercontent.com/provider.png" } }]
+    },
+    { avatar_url: "https://project.supabase.co/storage/v1/object/public/avatars/user/avatar.png", avatar_source: "custom" }
+  );
+  assert.equal(identity.avatarUrl, "https://project.supabase.co/storage/v1/object/public/avatars/user/avatar.png");
+});
+
 test("initials fallback is stable", () => {
   assert.equal(getInitials("Ada Lovelace"), "AL");
   assert.equal(getInitials("learner@example.com"), "LE");
@@ -107,6 +143,7 @@ test("dialog, progressive maintenance controls, polling, and avatar surfaces con
   const experience = readFileSync(new URL("../components/maintenance/MaintenanceExperience.tsx", import.meta.url), "utf8");
   const avatar = readFileSync(new URL("../components/AccountAvatar.tsx", import.meta.url), "utf8");
   const profileForm = readFileSync(new URL("../components/profile/ProfileForm.tsx", import.meta.url), "utf8");
+  const sessionProfile = readFileSync(new URL("../lib/maintenance-server.ts", import.meta.url), "utf8");
   assert.match(editor, /previousFocus\?\.focus\(\)/);
   assert.match(editor, /event\.key === "Escape" && !busy/);
   assert.match(editor, /event\.key !== "Tab"/);
@@ -123,6 +160,7 @@ test("dialog, progressive maintenance controls, polling, and avatar surfaces con
   assert.match(experience, /document\.visibilityState !== "visible"/);
   assert.match(avatar, /identity\.avatarUrls\.find/);
   assert.match(avatar, /onError=\{\(\) => setFailedUrls/);
+  assert.match(sessionProfile, /avatar_url,avatar_source/);
   assert.doesNotMatch(profileForm, /Avatar URL/);
   assert.match(profileForm, /AvatarPicker/);
   assert.match(profileForm, /router\.refresh\(\)/);

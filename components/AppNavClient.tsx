@@ -70,7 +70,7 @@ export function AppNavClient({ user }: { user: NavUser }) {
       {menuOpen ? (
         <div id="mobile-navigation" className="border-t border-border py-3 lg:hidden">
           <nav className="grid gap-2 sm:grid-cols-2" aria-label="Mobile navigation">
-            {[...publicNavItems, ...(user ? privateNavItems : []), ...(user?.isAdmin ? [{ href: "/admin", label: "Admin" }] : [])].map((item) => (
+            {[...publicNavItems, ...(user ? privateNavItems : []), ...(user?.isAdmin ? [{ href: "/admin", label: "Administration" }] : [])].map((item) => (
               <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} className={`btn-outline justify-start ${isActive(item.href) ? "border-primary bg-surface-secondary text-foreground" : ""}`}>
                 {item.label}
               </Link>
@@ -104,7 +104,7 @@ function AccountMenu({ user, detailsRef }: { user: Exclude<NavUser, null>; detai
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/profile", label: "Profile", icon: UserRound },
     { href: "/settings", label: "Settings", icon: Settings },
-    ...(user.isAdmin ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }] : [])
+    ...(user.isAdmin ? [{ href: "/admin", label: "Administration", icon: ShieldCheck }] : [])
   ];
 
   return (
