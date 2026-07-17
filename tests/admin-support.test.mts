@@ -137,9 +137,22 @@ test("support surfaces use browser-local timestamps and consistent conversation 
 
 test("support queue supplies real counts and all requested filters", () => {
   const queue = readFileSync(new URL("../app/(admin)/admin/support/page.tsx", import.meta.url), "utf8");
-  for (const field of ["status", "category", "priority", "assigned", "archive", "sort"]) assert.match(queue, new RegExp(`name="${field}"`));
+  const filters = readFileSync(new URL("../components/admin/SupportQueueFilters.tsx", import.meta.url), "utf8");
+  for (const field of ["status", "category", "priority", "assigned", "archive", "sort"]) assert.match(filters, new RegExp(`name="${field}"`));
   assert.match(queue, /count: "exact"/);
-  assert.match(queue, /Unassigned/);
-  assert.match(queue, /Newest activity/);
-  assert.match(queue, /Oldest activity/);
+  assert.match(filters, /Unassigned/);
+  assert.match(filters, /Newest activity/);
+  assert.match(filters, /Oldest activity/);
+});
+
+test("support queue keeps everyday controls simple and remembers advanced filters", () => {
+  const queue = readFileSync(new URL("../app/(admin)/admin/support/page.tsx", import.meta.url), "utf8");
+  const filters = readFileSync(new URL("../components/admin/SupportQueueFilters.tsx", import.meta.url), "utf8");
+  assert.match(filters, /useAdminInterfaceMode/);
+  assert.match(filters, /Advanced filters/);
+  assert.match(filters, /ltcl:admin-support-filters/);
+  assert.match(filters, /localStorage\.setItem/);
+  assert.match(queue, /AccountAvatar/);
+  assert.match(queue, /No support tickets yet/);
+  assert.match(queue, /Learner requests will automatically appear here/);
 });
