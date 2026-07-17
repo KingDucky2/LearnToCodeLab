@@ -99,6 +99,36 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["learning_paths"]["Insert"]>;
         Relationships: [];
       };
+      courses: {
+        Row: { id: string; slug: string; title: string; description: string; icon: string; difficulty: string; estimated_minutes: number; status: "available" | "coming_soon"; sort_order: number; published: boolean; created_at: string; updated_at: string };
+        Insert: Partial<Database["public"]["Tables"]["courses"]["Row"]> & { slug: string; title: string; description: string };
+        Update: Partial<Database["public"]["Tables"]["courses"]["Row"]>;
+        Relationships: [];
+      };
+      course_modules: {
+        Row: { id: string; course_id: string; slug: string; title: string; description: string; status: "available" | "coming_soon"; sort_order: number; published: boolean; created_at: string; updated_at: string };
+        Insert: Partial<Database["public"]["Tables"]["course_modules"]["Row"]> & { course_id: string; slug: string; title: string; description: string };
+        Update: Partial<Database["public"]["Tables"]["course_modules"]["Row"]>;
+        Relationships: [];
+      };
+      lessons: {
+        Row: { id: string; module_id: string; slug: string; title: string; subtitle: string; description: string; difficulty: string; estimated_minutes: number; objectives: Json; content: Json; starter_files: Json; validation_rules: Json; xp_reward: number; sort_order: number; published: boolean; created_at: string; updated_at: string };
+        Insert: Partial<Database["public"]["Tables"]["lessons"]["Row"]> & { module_id: string; slug: string; title: string; description: string };
+        Update: Partial<Database["public"]["Tables"]["lessons"]["Row"]>;
+        Relationships: [];
+      };
+      lesson_progress: {
+        Row: { id: string; user_id: string; lesson_id: string; status: "not_started" | "in_progress" | "completed"; completion_percent: number; started_at: string; completed_at: string | null; last_opened_at: string; updated_at: string };
+        Insert: Partial<Database["public"]["Tables"]["lesson_progress"]["Row"]> & { user_id: string; lesson_id: string };
+        Update: Partial<Database["public"]["Tables"]["lesson_progress"]["Row"]>;
+        Relationships: [];
+      };
+      lesson_code: {
+        Row: { id: string; user_id: string; lesson_id: string; file_name: string; content: string; created_at: string; updated_at: string };
+        Insert: Partial<Database["public"]["Tables"]["lesson_code"]["Row"]> & { user_id: string; lesson_id: string; file_name: string; content: string };
+        Update: Partial<Database["public"]["Tables"]["lesson_code"]["Row"]>;
+        Relationships: [];
+      };
       skill_scores: {
         Row: { id: string; user_id: string; language_slug: string; topic: string; mastery: number; updated_at: string };
         Insert: { id?: string; user_id: string; language_slug: string; topic: string; mastery?: number; updated_at?: string };
@@ -233,6 +263,7 @@ export type Database = {
       save_learner_profile: { Args: { profile_display_name: string; profile_username: string; profile_bio: string; profile_experience: string; primary_goal: string; interests: Json; starting_language: string; minutes_per_day: number; preferred_format: string; learning_struggle: string }; Returns: undefined };
       save_maintenance_configuration_v2: { Args: { settings_payload: Json; tasks_payload: Json; updates_payload: Json }; Returns: undefined };
       process_due_maintenance_automation: { Args: Record<PropertyKey, never>; Returns: Json };
+      save_lesson_workspace: { Args: { course_slug: string; module_slug: string; lesson_slug: string; code_files: Json; mark_completed?: boolean }; Returns: undefined };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

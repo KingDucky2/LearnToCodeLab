@@ -81,6 +81,7 @@ supabase/migrations/202607160001_admin_support_system.sql
 supabase/migrations/202607170001_support_ticket_production_polish.sql
 supabase/migrations/202607170002_profile_onboarding_polish.sql
 supabase/migrations/202607170003_profile_ui_maintenance_stabilization.sql
+supabase/migrations/202607170004_learning_workspace_foundation.sql
 ```
 
 The profile trigger creates a private one-to-one `profiles` row from Supabase auth metadata. The settings migration persists display preferences and tightens the insert/update ownership policies. Row Level Security only allows authenticated users to access their own private account data.
@@ -94,6 +95,8 @@ Apply `supabase/migrations/202607160001_admin_support_system.sql` before enablin
 Avatar uploads, case-insensitive usernames, safe display names, and required onboarding for newly created accounts require `supabase/migrations/202607170002_profile_onboarding_polish.sql`. The migration creates the public `avatars` bucket with authenticated per-user write policies. Existing accounts are not forced through onboarding and instead receive a profile-completion prompt when information is missing.
 
 Apply `supabase/migrations/202607170003_profile_ui_maintenance_stabilization.sql` immediately afterward. It makes profile edits atomic, narrows avatars to JPEG/PNG/WebP, adds the learner-struggle field, and adds maintenance scheduling/history. Set the server-only `CRON_SECRET` in Vercel; `vercel.json` invokes `/api/cron/maintenance` once per minute. Scheduling remains unavailable until both the migration and cron environment variable are active. Vercel plan limits may require a less frequent schedule or an external authenticated scheduler.
+
+Apply `supabase/migrations/202607170004_learning_workspace_foundation.sql` before enabling learning-workspace autosave. It creates the course, module, lesson, progress, and code tables; seeds Web Development Foundations and its first three lessons; and enforces per-learner RLS. No new environment variables are required. Without this migration, lessons remain usable in the browser but signed-in progress saves return a clear setup error.
 
 ## Maintenance Control System
 

@@ -53,16 +53,13 @@ test("mobile navigation closes with Escape and restores trigger focus", () => {
 
 test("learning catalog waits for comfortable width before using two columns", () => {
   const catalog = read("../app/(public)/learn/page.tsx");
-  const path = read("../app/(public)/learn/[language]/page.tsx");
-  const lesson = read("../app/(public)/learn/[language]/[lesson]/page.tsx");
+  const card = read("../components/course/CourseCard.tsx");
+  const lesson = read("../components/learning/LearningWorkspace.tsx");
   assert.match(catalog, /min-\[900px\]:grid-cols-2/);
-  assert.match(path, /min-\[900px\]:grid-cols-2/);
   assert.doesNotMatch(catalog, /md:grid-cols-2/);
-  assert.doesNotMatch(path, /md:grid-cols-2/);
-  assert.match(catalog, /content-wrap block min-w-0/);
-  assert.match(path, /content-wrap block min-w-0/);
-  assert.match(lesson, /xl:grid-cols-\[minmax\(0,\.75fr\)_minmax\(0,1\.25fr\)\]/);
-  assert.match(lesson, /overflow-x-auto whitespace-pre-wrap break-words/);
+  assert.match(card, /content-wrap flex min-w-0/);
+  assert.match(lesson, /2xl:grid-cols-\[260px_minmax\(0,1fr\)_minmax\(420px,\.95fr\)\]/);
+  assert.match(lesson, /w-\[min\(1600px,calc\(100%_-_24px\)\)\] min-w-0/);
 });
 
 test("full-height application surfaces use dynamic viewport units", () => {
