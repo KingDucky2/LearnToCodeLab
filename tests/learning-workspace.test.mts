@@ -89,7 +89,8 @@ test("learning migration is forward-only, seeded, indexed, and owner scoped", ()
   assert.match(migration, /current_user_id uuid := auth\.uid\(\)/);
   assert.match(migration, /jsonb_array_elements\(target_starter_files\)/);
   assert.match(migration, /revoke all on function public\.save_lesson_workspace/);
-  assert.equal((migration.match(/insert into public\.courses/g) ?? []).length, 1);
+  assert.match(migration, /insert into public\.courses[\s\S]*?from public\.learning_paths/);
+  assert.equal((migration.match(/values \('11111111-1111-4111-8111-111111111101'/g) ?? []).length, 1);
   assert.equal((migration.match(/'33333333-3333-4333-8333-33333333330[1-3]'/g) ?? []).length >= 3, true);
   assert.doesNotMatch(migration, /service_role/);
 });

@@ -1,5 +1,7 @@
 -- Learning workspace foundation: forward-only and safe for existing accounts.
 
+begin;
+
 create table if not exists public.courses (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
@@ -29,39 +31,110 @@ create table if not exists public.course_modules (
   unique (course_id, slug)
 );
 
+-- These two tables already exist in 202607100001 with a smaller, legacy
+-- schema. Keep their original columns and data, then add the workspace fields
+-- explicitly before any index, policy, seed, or function references them.
 create table if not exists public.lessons (
   id uuid primary key default gen_random_uuid(),
-  module_id uuid not null references public.course_modules(id) on delete cascade,
-  slug text not null check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
-  title text not null check (char_length(title) between 2 and 160),
-  subtitle text not null default '',
-  description text not null check (char_length(description) between 10 and 2000),
-  difficulty text not null check (difficulty in ('Beginner','Intermediate','Advanced')),
-  estimated_minutes integer not null check (estimated_minutes between 1 and 600),
-  objectives jsonb not null default '[]'::jsonb check (jsonb_typeof(objectives) = 'array'),
-  content jsonb not null default '{}'::jsonb check (jsonb_typeof(content) = 'object'),
-  starter_files jsonb not null default '[]'::jsonb check (jsonb_typeof(starter_files) = 'array'),
-  validation_rules jsonb not null default '[]'::jsonb check (jsonb_typeof(validation_rules) = 'array'),
-  xp_reward integer not null default 0 check (xp_reward >= 0),
+  module_id uuid not null references public.modules(id) on delete cascade,
+  slug text not null,
+  title text not null,
+  objective text not null default '',
+  difficulty text not null default 'foundation',
+  estimated_minutes integer not null default 20,
   sort_order integer not null default 0,
-  published boolean not null default false,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
   unique (module_id, slug)
 );
+
+alter table public.lessons
+  add column if not exists objective text,
+  add column if not exists subtitle text not null default '',
+  add column if not exists description text,
+  add column if not exists objectives jsonb not null default '[]'::jsonb,
+  add column if not exists content jsonb not null default '{}'::jsonb,
+  add column if not exists starter_files jsonb not null default '[]'::jsonb,
+  add column if not exists validation_rules jsonb not null default '[]'::jsonb,
+  add column if not exists xp_reward integer not null default 0,
+  add column if not exists published boolean not null default false,
+  add column if not exists updated_at timestamptz not null default now();
+
+update public.lessons
+set objective = coalesce(nullif(objective, ''), nullif(description, ''), title),
+    description = coalesce(nullif(description, ''), nullif(objective, ''), title),
+    objectives = case when objectives = '[]'::jsonb and coalesce(objective, '') <> '' then jsonb_build_array(objective) else objectives end,
+    difficulty = case lower(difficulty)
+      when 'advanced' then 'Advanced'
+      when 'building' then 'Intermediate'
+      when 'intermediate' then 'Intermediate'
+      else 'Beginner'
+    end,
+    updated_at = coalesce(updated_at, created_at, now());
+
+alter table public.lessons
+  alter column objective set default '',
+  alter column objective set not null,
+  alter column description set not null,
+  alter column difficulty set default 'Beginner';
+
+alter table public.lessons drop constraint if exists lessons_difficulty_check;
+alter table public.lessons drop constraint if exists lessons_workspace_slug_check;
+alter table public.lessons drop constraint if exists lessons_workspace_title_check;
+alter table public.lessons drop constraint if exists lessons_workspace_description_check;
+alter table public.lessons drop constraint if exists lessons_workspace_difficulty_check;
+alter table public.lessons drop constraint if exists lessons_workspace_estimated_minutes_check;
+alter table public.lessons drop constraint if exists lessons_workspace_objectives_check;
+alter table public.lessons drop constraint if exists lessons_workspace_content_check;
+alter table public.lessons drop constraint if exists lessons_workspace_starter_files_check;
+alter table public.lessons drop constraint if exists lessons_workspace_validation_rules_check;
+alter table public.lessons drop constraint if exists lessons_workspace_xp_reward_check;
+alter table public.lessons add constraint lessons_workspace_slug_check check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$') not valid;
+alter table public.lessons add constraint lessons_workspace_title_check check (char_length(title) between 2 and 160) not valid;
+alter table public.lessons add constraint lessons_workspace_description_check check (char_length(description) between 1 and 2000) not valid;
+alter table public.lessons add constraint lessons_workspace_difficulty_check check (difficulty in ('Beginner','Intermediate','Advanced')) not valid;
+alter table public.lessons add constraint lessons_workspace_estimated_minutes_check check (estimated_minutes between 1 and 600) not valid;
+alter table public.lessons add constraint lessons_workspace_objectives_check check (jsonb_typeof(objectives) = 'array') not valid;
+alter table public.lessons add constraint lessons_workspace_content_check check (jsonb_typeof(content) = 'object') not valid;
+alter table public.lessons add constraint lessons_workspace_starter_files_check check (jsonb_typeof(starter_files) = 'array') not valid;
+alter table public.lessons add constraint lessons_workspace_validation_rules_check check (jsonb_typeof(validation_rules) = 'array') not valid;
+alter table public.lessons add constraint lessons_workspace_xp_reward_check check (xp_reward >= 0) not valid;
 
 create table if not exists public.lesson_progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   lesson_id uuid not null references public.lessons(id) on delete cascade,
-  status text not null default 'in_progress' check (status in ('not_started','in_progress','completed')),
-  completion_percent integer not null default 0 check (completion_percent between 0 and 100),
-  started_at timestamptz not null default now(),
+  status text not null default 'not_started',
+  completed_sections jsonb not null default '[]'::jsonb,
+  started_at timestamptz,
   completed_at timestamptz,
-  last_opened_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (user_id, lesson_id)
 );
+
+alter table public.lesson_progress
+  add column if not exists completed_sections jsonb not null default '[]'::jsonb,
+  add column if not exists completion_percent integer not null default 0,
+  add column if not exists last_opened_at timestamptz not null default now();
+
+update public.lesson_progress
+set status = case when status in ('not_started','in_progress','completed') then status else 'in_progress' end,
+    completion_percent = case when status = 'completed' then 100 else coalesce(completion_percent, 0) end,
+    started_at = coalesce(started_at, updated_at, now()),
+    last_opened_at = coalesce(last_opened_at, updated_at, started_at, now()),
+    updated_at = coalesce(updated_at, now());
+
+alter table public.lesson_progress
+  alter column status set default 'not_started',
+  alter column started_at set default now(),
+  alter column started_at set not null,
+  alter column last_opened_at set default now(),
+  alter column last_opened_at set not null;
+
+alter table public.lesson_progress drop constraint if exists lesson_progress_status_check;
+alter table public.lesson_progress drop constraint if exists lesson_progress_workspace_status_check;
+alter table public.lesson_progress drop constraint if exists lesson_progress_workspace_completion_check;
+alter table public.lesson_progress add constraint lesson_progress_workspace_status_check check (status in ('not_started','in_progress','completed')) not valid;
+alter table public.lesson_progress add constraint lesson_progress_workspace_completion_check check (completion_percent between 0 and 100) not valid;
 
 create table if not exists public.lesson_code (
   id uuid primary key default gen_random_uuid(),
@@ -74,11 +147,57 @@ create table if not exists public.lesson_code (
   unique (user_id, lesson_id, file_name)
 );
 
+-- Preserve legacy curriculum relationships before changing lessons.module_id
+-- from public.modules to the new course_modules hierarchy. Reusing the legacy
+-- UUIDs means every existing lesson and lesson_progress row remains valid.
+insert into public.courses(id, slug, title, description, icon, difficulty, estimated_minutes, status, sort_order, published)
+select lp.id, lp.slug, lp.title, lp.description, 'BookOpen', 'Beginner', 0, 'available', lp.sort_order, true
+from public.learning_paths lp
+on conflict (id) do nothing;
+
+insert into public.course_modules(id, course_id, slug, title, description, status, sort_order, published)
+select m.id, m.learning_path_id,
+       concat('legacy-', trim(both '-' from regexp_replace(lower(m.title), '[^a-z0-9]+', '-', 'g')), '-', left(m.id::text, 8)),
+       case when char_length(m.title) >= 2 then m.title else concat(m.title, ' module') end,
+       concat('Legacy curriculum module: ', m.title),
+       'available', m.sort_order, true
+from public.modules m
+join public.learning_paths lp on lp.id = m.learning_path_id
+on conflict (id) do nothing;
+
+update public.lessons l
+set published = true
+where exists (select 1 from public.modules legacy_module where legacy_module.id = l.module_id);
+
+do $$
+declare
+  existing_constraint text;
+begin
+  for existing_constraint in
+    select constraint_record.conname
+    from pg_constraint constraint_record
+    where constraint_record.conrelid = 'public.lessons'::regclass
+      and constraint_record.contype = 'f'
+      and pg_get_constraintdef(constraint_record.oid) like 'FOREIGN KEY (module_id)%'
+  loop
+    execute format('alter table public.lessons drop constraint %I', existing_constraint);
+  end loop;
+end;
+$$;
+
+alter table public.lessons
+  add constraint lessons_course_module_id_fkey foreign key (module_id) references public.course_modules(id) on delete cascade not valid;
+alter table public.lessons validate constraint lessons_course_module_id_fkey;
+
 create index if not exists course_modules_course_sort_idx on public.course_modules(course_id, sort_order);
+create unique index if not exists course_modules_course_slug_uidx on public.course_modules(course_id, slug);
 create index if not exists lessons_module_sort_idx on public.lessons(module_id, sort_order);
+create unique index if not exists lessons_module_slug_uidx on public.lessons(module_id, slug);
 create index if not exists lesson_progress_user_recent_idx on public.lesson_progress(user_id, last_opened_at desc);
 create index if not exists lesson_progress_user_status_idx on public.lesson_progress(user_id, status);
+create unique index if not exists lesson_progress_user_lesson_uidx on public.lesson_progress(user_id, lesson_id);
 create index if not exists lesson_code_user_lesson_idx on public.lesson_code(user_id, lesson_id);
+create unique index if not exists lesson_code_user_lesson_file_uidx on public.lesson_code(user_id, lesson_id, file_name);
 
 alter table public.courses enable row level security;
 alter table public.course_modules enable row level security;
@@ -183,3 +302,5 @@ $$;
 
 revoke all on function public.save_lesson_workspace(text,text,text,jsonb,boolean) from public;
 grant execute on function public.save_lesson_workspace(text,text,text,jsonb,boolean) to authenticated;
+
+commit;

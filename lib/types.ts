@@ -112,13 +112,13 @@ export type Database = {
         Relationships: [];
       };
       lessons: {
-        Row: { id: string; module_id: string; slug: string; title: string; subtitle: string; description: string; difficulty: string; estimated_minutes: number; objectives: Json; content: Json; starter_files: Json; validation_rules: Json; xp_reward: number; sort_order: number; published: boolean; created_at: string; updated_at: string };
+        Row: { id: string; module_id: string; slug: string; title: string; objective: string; subtitle: string; description: string; difficulty: string; estimated_minutes: number; objectives: Json; content: Json; starter_files: Json; validation_rules: Json; xp_reward: number; sort_order: number; published: boolean; created_at: string; updated_at: string };
         Insert: Partial<Database["public"]["Tables"]["lessons"]["Row"]> & { module_id: string; slug: string; title: string; description: string };
         Update: Partial<Database["public"]["Tables"]["lessons"]["Row"]>;
         Relationships: [];
       };
       lesson_progress: {
-        Row: { id: string; user_id: string; lesson_id: string; status: "not_started" | "in_progress" | "completed"; completion_percent: number; started_at: string; completed_at: string | null; last_opened_at: string; updated_at: string };
+        Row: { id: string; user_id: string; lesson_id: string; status: "not_started" | "in_progress" | "completed"; completed_sections: Json; completion_percent: number; started_at: string; completed_at: string | null; last_opened_at: string; updated_at: string };
         Insert: Partial<Database["public"]["Tables"]["lesson_progress"]["Row"]> & { user_id: string; lesson_id: string };
         Update: Partial<Database["public"]["Tables"]["lesson_progress"]["Row"]>;
         Relationships: [];
