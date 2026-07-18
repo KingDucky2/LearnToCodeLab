@@ -204,6 +204,7 @@ supabase/migrations/202607160001_admin_support_system.sql
 supabase/migrations/202607170001_support_ticket_production_polish.sql
 supabase/migrations/202607170002_profile_onboarding_polish.sql
 supabase/migrations/202607170003_profile_ui_maintenance_stabilization.sql
+supabase/migrations/202607170004_learning_workspace_foundation.sql
 ```
 
 Apply these migrations in order before exercising `/admin/users`, `/admin/support`, `/admin/activity`, learner `/support`, or the new profile and onboarding flows. Confirm RLS with separate learner and staff sessions. Existing profiles default to active; no destructive backfill is performed.
@@ -211,6 +212,8 @@ Apply these migrations in order before exercising `/admin/users`, `/admin/suppor
 The profile/onboarding migration must be applied before deploying its matching application code. Verify that the `avatars` Storage bucket is public for reads, limited to the declared image MIME types and 5 MB, and that authenticated users can insert, replace, or delete objects only inside their own user-ID folder. Confirm that existing profiles retain access while a newly created email or Google account is redirected to `/onboarding`.
 
 Apply the stabilization migration after the profile/onboarding migration. Verify `save_learner_profile`, `save_maintenance_configuration_v2`, and `process_due_maintenance_automation` exist; confirm the avatar bucket accepts only JPEG, PNG, and WebP; and verify `maintenance_history` is readable only through the existing admin RLS check.
+
+Apply the learning-workspace migration before releasing `/learn/web-development-foundations`. Verify `courses`, `course_modules`, and `lessons` are publicly readable only when published; verify `lesson_progress` and `lesson_code` allow authenticated learners to access only their own rows; and verify `save_lesson_workspace` cannot save a file that is not declared by the lesson. No additional Vercel environment variables or scheduled jobs are required.
 
 For scheduled maintenance, add a strong server-only `CRON_SECRET` to the Vercel project. Vercel calls `/api/cron/maintenance` using `Authorization: Bearer <CRON_SECRET>` according to `vercel.json`. The route also needs the existing server-only `SUPABASE_SERVICE_ROLE_KEY`. Never prefix either value with `NEXT_PUBLIC_`. Verify the deployed Vercel plan supports the configured one-minute cron frequency; otherwise use the smallest supported interval or an external scheduler with the same Authorization header and document the reduced timing precision.
 

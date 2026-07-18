@@ -79,7 +79,7 @@ export const getCurrentUserRole = cache(async function getCurrentUserRole() {
   const { data: { user } } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!supabase || !user) return { supabase, user: null, role: null, profile: null };
   const db = supabase as any;
-  let { data, error } = await db.from("profiles").select("role,display_name,username,avatar_url,avatar_source,preferred_language,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
+  let { data, error } = await db.from("profiles").select("role,display_name,username,avatar_url,avatar_source,preferred_language,learning_goal,account_status,onboarding_required,onboarding_completed").eq("id", user.id).maybeSingle();
 
   // Authorization must not disappear just because a newly deployed optional
   // profile field is not available yet. Keep the role database-authoritative
